@@ -1,4 +1,4 @@
 ---
-Test: Welcome to my blog
+Title: Welcome to my blog
 ---
 

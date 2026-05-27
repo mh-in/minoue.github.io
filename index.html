@@ -119,8 +119,22 @@
         </section>
 
         <h2>Contact</h2>
-        <p class="contact-line"><span class="label">Mail</span> <a href="/cdn-cgi/l/email-protection#f79a969f98d99e99988292b782999eda9085929e918480969b93d99392"><span class="__cf_email__" data-cfemail="dbb6bab3b4f5b2b5b4aebe9baeb5b2f6bca9beb2bda8acbab7bff5bfbe">[email&#160;protected]</span></a></p>
-
+        <p class="contact-line">
+            <span class="label">Mail</span>
+            <span id="email-link"></span>
+        </p>
+        <script>
+        (function() {
+            var user = 'maho.inoue';
+            var domain = 'uni-greifswald.de';
+            var addr = user + '@' + domain;
+            var a = document.createElement('a');
+            a.href = 'mailto:' + addr;
+            a.textContent = addr;
+            document.getElementById('email-link').appendChild(a);
+        })();
+        </script>
+        
         <footer class="site-foot">
             <span>© 2025–2026 Maho Inoue</span>
             <span>Last updated: 27 May 2026</span>

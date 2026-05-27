@@ -1,0 +1,528 @@
+/* ------------------------------------------------------------------
+   Maho Inoue — personal site stylesheet
+   Aesthetic: academic, paper-like, calm, with a hint of botany green
+   ------------------------------------------------------------------ */
+
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;0,8..60,700;1,8..60,400;1,8..60,500&family=Noto+Serif+JP:wght@400;500;600&family=Inter:wght@400;500;600&display=swap');
+
+:root {
+    --bg:        #fbfaf6;                   /* warm paper */
+    --bg-alt:    #f4f1e8;                   /* card / placeholder */
+    --ink:       oklch(22% 0.010 100);      /* body text */
+    --ink-soft:  oklch(40% 0.012 100);      /* secondary text */
+    --ink-meta:  oklch(58% 0.018 100);      /* dates, labels */
+    --rule:      oklch(89% 0.008 100);      /* hairlines */
+    --rule-soft: oklch(94% 0.006 100);
+    --accent:    oklch(45% 0.045 145);      /* muted moss green */
+    --accent-soft: oklch(92% 0.020 145);
+
+    --serif:  'Source Serif 4', 'Noto Serif JP', 'Hiragino Mincho ProN', 'Yu Mincho', Georgia, serif;
+    --sans:   'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+
+    --maxw: 44rem;       /* ~704px — comfortable academic measure */
+    --pad:  clamp(1.25rem, 4vw, 2rem);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 17px;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+
+body {
+    font-feature-settings: "kern", "liga", "onum";
+    font-variant-numeric: oldstyle-nums;
+}
+
+/* ---------- layout shell -------------------------------------------- */
+
+.page {
+    max-width: var(--maxw);
+    margin: 0 auto;
+    padding: clamp(2rem, 5vw, 3.5rem) var(--pad) 4rem;
+}
+
+/* ---------- masthead ------------------------------------------------ */
+
+.masthead {
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 2.25rem;
+}
+
+.masthead .site-title {
+    font-size: 1.05rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    margin: 0 0 0.15rem;
+    color: var(--ink);
+}
+
+.masthead .site-title .jp {
+    color: var(--ink-soft);
+    font-weight: 400;
+    margin-left: 0.35em;
+}
+
+.masthead .site-sub {
+    font-family: var(--sans);
+    font-size: 0.78rem;
+    letter-spacing: 0.02em;
+    color: var(--ink-meta);
+    margin: 0;
+}
+
+/* ---------- navigation --------------------------------------------- */
+
+nav.primary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 1.4rem;
+    margin-top: 1rem;
+    font-family: var(--sans);
+    font-size: 0.82rem;
+    letter-spacing: 0.04em;
+}
+
+nav.primary a {
+    color: var(--ink-soft);
+    text-decoration: none;
+    padding: 0.15rem 0;
+    border-bottom: 1px solid transparent;
+    transition: color 160ms ease, border-color 160ms ease;
+}
+
+nav.primary a:hover {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+}
+
+nav.primary a[aria-current="page"] {
+    color: var(--ink);
+    border-bottom-color: var(--accent);
+}
+
+nav.primary .lang {
+    margin-left: auto;
+    color: var(--ink-meta);
+}
+
+/* ---------- typography --------------------------------------------- */
+
+h1, h2, h3, h4 {
+    font-family: var(--serif);
+    color: var(--ink);
+    font-weight: 600;
+    line-height: 1.25;
+    margin: 0 0 0.6rem;
+}
+
+h1 {
+    font-size: clamp(1.65rem, 3.4vw, 2rem);
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    margin-bottom: 1.5rem;
+}
+
+h2 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    letter-spacing: 0.005em;
+    margin: 2.5rem 0 1rem;
+    padding-bottom: 0.45rem;
+    border-bottom: 1px solid var(--rule);
+}
+
+h3 {
+    font-size: 1.02rem;
+    font-weight: 600;
+    margin: 1.6rem 0 0.5rem;
+}
+
+p { margin: 0 0 1rem; }
+
+em, i { font-style: italic; }
+strong, b { font-weight: 600; color: var(--ink); }
+
+a {
+    color: var(--ink);
+    text-decoration: none;
+    border-bottom: 1px solid var(--rule);
+    transition: color 160ms ease, border-color 160ms ease;
+}
+a:hover {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+}
+
+hr {
+    border: 0;
+    border-top: 1px solid var(--rule);
+    margin: 2.5rem 0;
+}
+
+/* ---------- About / intro ------------------------------------------ */
+
+.intro {
+    margin-bottom: 0.5rem;
+}
+.intro p {
+    color: var(--ink);
+}
+
+/* ---------- News (year-grouped) ------------------------------------ */
+
+.news-year {
+    display: grid;
+    grid-template-columns: 5.5rem 1fr;
+    column-gap: 1.5rem;
+    align-items: start;
+    margin: 1.4rem 0 0.4rem;
+    padding-top: 1.4rem;
+    border-top: 1px solid var(--rule-soft);
+}
+.news-year:first-of-type {
+    border-top: 0;
+    padding-top: 0;
+    margin-top: 0.5rem;
+}
+
+.news-year > .year-label {
+    font-family: var(--sans);
+    font-size: 0.78rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    padding-top: 0.45rem;
+    position: sticky;
+    top: 1rem;
+}
+
+.news-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.news-list li {
+    display: grid;
+    grid-template-columns: 5.5rem 1fr;
+    column-gap: 1rem;
+    padding: 0.55rem 0;
+    border-bottom: 1px dotted var(--rule-soft);
+    line-height: 1.55;
+}
+.news-list li:last-child { border-bottom: 0; }
+
+.news-list .date {
+    font-family: var(--sans);
+    font-size: 0.76rem;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    color: var(--ink-meta);
+    padding-top: 0.22rem;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.news-list .text {
+    color: var(--ink-soft);
+}
+.news-list .text strong {
+    color: var(--ink);
+    font-weight: 500;
+}
+
+/* mobile: stack date above text */
+@media (max-width: 540px) {
+    .news-year {
+        grid-template-columns: 1fr;
+        column-gap: 0;
+    }
+    .news-year > .year-label {
+        position: static;
+        padding-top: 0;
+        margin-bottom: 0.4rem;
+    }
+    .news-list li {
+        grid-template-columns: 1fr;
+        row-gap: 0.15rem;
+    }
+    .news-list .date { padding-top: 0; }
+}
+
+/* ---------- Research topic cards ----------------------------------- */
+
+.topic {
+    display: grid;
+    grid-template-columns: 9rem 1fr;
+    column-gap: 1.6rem;
+    align-items: start;
+    padding: 1.5rem 0;
+    border-top: 1px solid var(--rule-soft);
+}
+.topic:first-of-type { border-top: 0; padding-top: 0.5rem; }
+
+.topic .topic-figure {
+    margin: 0;
+    aspect-ratio: 4 / 5;
+    background: var(--bg-alt);
+    background-image:
+        repeating-linear-gradient(135deg,
+            transparent 0 8px,
+            oklch(88% 0.012 100) 8px 9px);
+    border: 1px solid var(--rule);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 0.5rem;
+}
+.topic .topic-figure figcaption {
+    font-family: var(--sans);
+    font-size: 0.66rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-meta);
+    background: var(--bg);
+    padding: 0.2rem 0.45rem;
+    border: 1px solid var(--rule);
+}
+
+.topic h3 {
+    margin-top: 0;
+    font-size: 1.08rem;
+}
+.topic h3 a {
+    border-bottom-color: transparent;
+}
+.topic h3 a:hover {
+    border-bottom-color: var(--accent);
+}
+
+.topic .more {
+    font-family: var(--sans);
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    color: var(--ink-soft);
+    border-bottom: 1px solid var(--rule);
+    display: inline-block;
+    margin-top: 0.3rem;
+}
+.topic .more::after { content: " →"; color: var(--accent); }
+.topic .more:hover { color: var(--accent); border-bottom-color: var(--accent); }
+
+@media (max-width: 540px) {
+    .topic {
+        grid-template-columns: 1fr;
+        row-gap: 1rem;
+    }
+    .topic .topic-figure {
+        aspect-ratio: 4 / 3;
+        max-width: 14rem;
+    }
+}
+
+/* ---------- Publications ------------------------------------------- */
+
+.pub-year {
+    display: grid;
+    grid-template-columns: 5.5rem 1fr;
+    column-gap: 1.5rem;
+    align-items: start;
+    margin-top: 2rem;
+    padding-top: 1.4rem;
+    border-top: 1px solid var(--rule-soft);
+}
+.pub-year:first-of-type { border-top: 0; padding-top: 0.5rem; margin-top: 0.5rem; }
+
+.pub-year > .year-label {
+    font-family: var(--sans);
+    font-size: 0.78rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    padding-top: 0.35rem;
+    position: sticky;
+    top: 1rem;
+}
+
+.pub-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+}
+
+.pub-list li {
+    padding-left: 0;
+}
+
+.pub-list .authors {
+    color: var(--ink-soft);
+    font-size: 0.95rem;
+}
+
+.pub-list .title {
+    display: block;
+    color: var(--ink);
+    font-weight: 500;
+    margin: 0.1rem 0;
+}
+
+.pub-list .venue {
+    display: block;
+    font-size: 0.92rem;
+    color: var(--ink-soft);
+    font-style: italic;
+}
+.pub-list .venue a { border-bottom-color: var(--rule); }
+
+.pub-list .status {
+    font-family: var(--sans);
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-meta);
+}
+
+/* Tag — small organism marker */
+.tag {
+    display: inline-block;
+    font-family: var(--sans);
+    font-size: 0.66rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-soft);
+    padding: 0.08rem 0.45rem;
+    border-radius: 2px;
+    margin-right: 0.45rem;
+    vertical-align: 0.12em;
+    font-variant-numeric: normal;
+}
+.tag.dip { color: oklch(40% 0.04 60); background: oklch(93% 0.018 80); }
+
+/* simple sub-headings inside publications */
+.sub-h {
+    font-family: var(--sans);
+    font-size: 0.74rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-meta);
+    margin: 2.4rem 0 0.8rem;
+}
+
+@media (max-width: 540px) {
+    .pub-year {
+        grid-template-columns: 1fr;
+    }
+    .pub-year > .year-label {
+        position: static;
+        padding-top: 0;
+        margin-bottom: 0.6rem;
+    }
+}
+
+/* ---------- Profile figure on home --------------------------------- */
+
+.profile {
+    float: right;
+    margin: 0 0 1rem 1.5rem;
+    width: 11rem;
+}
+.profile .placeholder {
+    aspect-ratio: 4 / 5;
+    background: var(--bg-alt);
+    background-image:
+        repeating-linear-gradient(135deg,
+            transparent 0 8px,
+            oklch(88% 0.012 100) 8px 9px);
+    border: 1px solid var(--rule);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 0.5rem;
+}
+.profile figcaption {
+    font-family: var(--sans);
+    font-size: 0.66rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-meta);
+    background: var(--bg);
+    padding: 0.2rem 0.45rem;
+    border: 1px solid var(--rule);
+}
+@media (max-width: 540px) {
+    .profile {
+        float: none;
+        margin: 0 0 1.25rem;
+        width: 9rem;
+    }
+}
+
+/* ---------- Contact / generic blocks ------------------------------- */
+
+.contact-line {
+    font-family: var(--sans);
+    font-size: 0.88rem;
+    color: var(--ink-soft);
+    margin: 0.4rem 0;
+}
+.contact-line .label {
+    display: inline-block;
+    width: 4rem;
+    color: var(--ink-meta);
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    vertical-align: 0.1em;
+}
+
+/* ---------- Footer -------------------------------------------------- */
+
+.site-foot {
+    margin-top: 4rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--rule);
+    font-family: var(--sans);
+    font-size: 0.74rem;
+    letter-spacing: 0.04em;
+    color: var(--ink-meta);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+/* ---------- Japanese pages ----------------------------------------- */
+
+html[lang="ja"] body,
+.lang-jp {
+    font-family: 'Noto Serif JP', 'Source Serif 4', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+    font-size: 16px;
+}
+html[lang="ja"] .news-list .date,
+html[lang="ja"] nav.primary,
+html[lang="ja"] .tag,
+html[lang="ja"] .year-label,
+html[lang="ja"] .sub-h,
+html[lang="ja"] .profile figcaption,
+html[lang="ja"] .topic .topic-figure figcaption,
+html[lang="ja"] .contact-line .label,
+html[lang="ja"] .site-foot {
+    font-family: var(--sans);
+}

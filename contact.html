@@ -32,9 +32,21 @@
 
         <div class="contact-block">
             <p class="contact-label">Email</p>
-            <p class="contact-value">
-                <a href="/cdn-cgi/l/email-protection#9cf1fdf4f3b2f5f2f3e9f9dce9f2f5b1fbeef9f5faefebfdf0f8b2f8f9"><span class="__cf_email__" data-cfemail="0865696067266166677d6d487d6661256f7a6d616e7b7f69646c266c6d">[email&#160;protected]</span></a>
-            </p>
+            <p class="contact-line">
+            <span class="label">Mail</span>
+            <span id="email-link"></span>
+        </p>
+        <script>
+        (function() {
+            var user = 'maho.inoue';
+            var domain = 'uni-greifswald.de';
+            var addr = user + '@' + domain;
+            var a = document.createElement('a');
+            a.href = 'mailto:' + addr;
+            a.textContent = addr;
+            document.getElementById('email-link').appendChild(a);
+        })();
+        </script>
         </div>
 
         <div class="contact-block">
@@ -62,15 +74,15 @@
             <li><a class="ext" href="https://github.com/mh-in" target="_blank" rel="noopener">GitHub</a></li>
         </ul>
 
-        <h2 lang="ja" style="font-family: 'Noto Serif JP', var(--serif);">日本語のお問い合わせ</h2>
+        <h2 lang="ja" style="font-family: 'Noto Serif JP', var(--serif);">お問い合わせ</h2>
 
         <p lang="ja" style="font-family: 'Noto Serif JP', var(--serif); color: var(--ink-soft);">
-            変形菌標本の研究利用、共同研究、その他ご相談などありましたら、上記メールアドレスまでお気軽にご連絡ください。日本語での連絡も歓迎いたします。
+            標本の研究利用、共同研究、その他ご相談などありましたら、上記メールアドレスまでお気軽にご連絡ください。
         </p>
 
         <footer class="site-foot">
             <span>© 2025–2026 Maho Inoue</span>
-            <span>Last updated: 29 April 2026</span>
+            <span>Last updated: 28 May 2026</span>
         </footer>
 
     </main>

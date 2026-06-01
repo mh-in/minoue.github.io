@@ -705,6 +705,65 @@ ol.projects > li::before {
     word-break: break-word;
 }
 
+/* Map figure on fieldwork page */
+.map-figure {
+    margin: 1.5rem 0;
+    padding: 0;
+}
+.map-figure img {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: transparent;
+}
+.map-figure .placeholder {
+    width: 100%;
+    max-width: 32rem;
+    aspect-ratio: 4 / 3;
+    background: var(--bg-alt);
+    border: 1px dashed var(--rule);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: var(--ink-meta);
+    font-family: var(--sans);
+    font-size: 0.78rem;
+    letter-spacing: 0.02em;
+    padding: 1rem;
+}
+.map-figure figcaption {
+    margin-top: 0.6rem;
+    font-family: var(--sans);
+    font-size: 0.74rem;
+    letter-spacing: 0.02em;
+    color: var(--ink-meta);
+    line-height: 1.5;
+}
+
+/* Plain disc list used in body copy */
+.body-list {
+    margin: 0.4rem 0 1rem;
+    padding-left: 1.2rem;
+    color: var(--ink-soft);
+    line-height: 1.65;
+}
+.body-list li { margin: 0.25rem 0; }
+
+/* "back to" link at page foot */
+.backlink {
+    font-family: var(--sans);
+    font-size: 0.84rem;
+    margin-top: 2rem;
+}
+.backlink a {
+    border-bottom: 1px solid var(--rule);
+}
+.backlink a:hover {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+}
+
 /* ---------- Contact page ------------------------------------------- */
 
 .contact-block {

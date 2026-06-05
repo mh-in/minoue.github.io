@@ -46,98 +46,89 @@
 
         <!--
           News items are grouped by year. Add new items at the top of the
-          most recent year's <ul>. To start a new year, copy a whole
-          .news-year block and change the year label.
+          most recent year's <ul>, and set data-cat on each <li> to one of:
+          paper · talk · field · note  (controls the coloured dot).
+          When the current year fills up, move the previous year's whole
+          .news-year block inside the <details class="news-archive"> below.
         -->
 
         <section class="news-year">
             <div class="year-label">2026</div>
             <ul class="news-list">
-                <li>
-                    <span class="date">Apr</span>
+                <li data-cat="note">
+                    <span class="date"><span class="tag">Note</span>Apr</span>
                     <span class="text">Many independent researchers generously provided me with a collection of myxomycete fruiting bodies. I would like to express my sincere gratitude to them.</span>
                 </li>
-                <li>
-                    <span class="date">Apr</span>
+                <li data-cat="field">
+                    <span class="date"><span class="tag">Field</span>Apr</span>
                     <span class="text">I conducted field surveys of nivicolous myxomycetes in Hokkaido, Japan.</span>
                 </li>
-                <li>
-                    <span class="date">Apr 10</span>
+                <li data-cat="paper">
+                    <span class="date"><span class="tag">Paper</span>Apr 10</span>
                     <span class="text">A new paper <strong>“A five-finger exercise: Five overlooked non-European species of <em>Tubifera</em>”</strong> to which I contributed as a co-author has been <a href="https://fuse-journal.org/wp-content/uploads/2026/04/FuseVol17Art7.pdf">published online</a>.</span>
                 </li>
-                <li>
-                    <span class="date">Mar</span>
+                <li data-cat="field">
+                    <span class="date"><span class="tag">Field</span>Mar</span>
                     <span class="text">I conducted field surveys of myxomycetes and the genus <em>Diphasiastrum</em> in Xitou and Hehuan Shan, Taiwan.</span>
                 </li>
-                <li>
-                    <span class="date">Mar 20</span>
+                <li data-cat="talk">
+                    <span class="date"><span class="tag">Talk</span>Mar 20</span>
                     <span class="text">I presented an oral talk at the 2025 Japanese Society of Myxomycetology Meeting, Tokyo, Japan.</span>
                 </li>
-                <li>
-                    <span class="date">Feb 23</span>
+                <li data-cat="paper">
+                    <span class="date"><span class="tag">Paper</span>Feb 23</span>
                     <span class="text">A new paper <strong>“Cryptic speciation in <em>Reticularia</em>: two hardly distinguishable new species from Japan and Tasmania”</strong> to which I contributed as a co-author has been <a href="https://fuse-journal.org/wp-content/uploads/2026/02/FuseVol17Art2.pdf">published online</a>.</span>
                 </li>
             </ul>
         </section>
 
-        <section class="news-year">
-            <div class="year-label">2025</div>
-            <ul class="news-list">
-                <li>
-                    <span class="date">Oct 14</span>
-                    <span class="text">I successfully passed my Ph.D. oral examination (defense) at the University of Greifswald, Germany.</span>
-                </li>
-                <li>
-                    <span class="date">Oct 11</span>
-                    <span class="text">A new paper <strong>“Nivicolous myxomycetes in the French Pyrenees – A biodiversity study aided by two molecular markers”</strong> to which I contributed as a co-author has been <a href="https://doi.org/10.1016/j.protis.2025.126130">published online</a>.</span>
-                </li>
-                <li>
-                    <span class="date">Jul 27</span>
-                    <span class="text">A new paper <strong>“First records of nivicolous myxomycetes (Amoebozoa) from Kazakhstan”</strong> to which I contributed as a co-author has been <a href="https://doi.org/10.1016/j.ejop.2025.126161">published online</a>.</span>
-                </li>
-                <li>
-                    <span class="date">Jun 21–27</span>
-                    <span class="text">I presented an oral talk at the <a href="https://icop2025.org">16th International Congress of Protistology (ICOP/ISOP 2025)</a>, Seoul, South Korea.</span>
-                </li>
-                <li>
-                    <span class="date">Jun 20</span>
-                    <span class="text">I gave an invited talk at the Ecology Seminar at Tohoku University, Sendai, Japan.</span>
-                </li>
-                <li>
-                    <span class="date">Jun</span>
-                    <span class="text">Several independent Japanese researchers generously provided me with a collection of myxomycete fruiting bodies. I would like to express my sincere gratitude to them.</span>
-                </li>
-                <li>
-                    <span class="date">May–Jun</span>
-                    <span class="text">I conducted field surveys of nivicolous myxomycetes and the genus <em>Diphasiastrum</em> in Hokkaido, Japan.</span>
-                </li>
-                <li>
-                    <span class="date">May 16–18</span>
-                    <span class="text">I presented an oral talk at the 69th annual meeting of the Mycological Society of Japan (MSJ 2025), Chiba, Japan.</span>
-                </li>
-            </ul>
-        </section>
+        <details class="news-archive">
+            <summary>Earlier news <span class="arch-count">(2025)</span></summary>
+            <section class="news-year">
+                <div class="year-label">2025</div>
+                <ul class="news-list">
+                    <li data-cat="note">
+                        <span class="date"><span class="tag">Note</span>Oct 14</span>
+                        <span class="text">I successfully passed my Ph.D. oral examination (defense) at the University of Greifswald, Germany.</span>
+                    </li>
+                    <li data-cat="paper">
+                        <span class="date"><span class="tag">Paper</span>Oct 11</span>
+                        <span class="text">A new paper <strong>“Nivicolous myxomycetes in the French Pyrenees – A biodiversity study aided by two molecular markers”</strong> to which I contributed as a co-author has been <a href="https://doi.org/10.1016/j.protis.2025.126130">published online</a>.</span>
+                    </li>
+                    <li data-cat="paper">
+                        <span class="date"><span class="tag">Paper</span>Jul 27</span>
+                        <span class="text">A new paper <strong>“First records of nivicolous myxomycetes (Amoebozoa) from Kazakhstan”</strong> to which I contributed as a co-author has been <a href="https://doi.org/10.1016/j.ejop.2025.126161">published online</a>.</span>
+                    </li>
+                    <li data-cat="talk">
+                        <span class="date"><span class="tag">Talk</span>Jun 21–27</span>
+                        <span class="text">I presented an oral talk at the <a href="https://icop2025.org">16th International Congress of Protistology (ICOP/ISOP 2025)</a>, Seoul, South Korea.</span>
+                    </li>
+                    <li data-cat="talk">
+                        <span class="date"><span class="tag">Talk</span>Jun 20</span>
+                        <span class="text">I gave an invited talk at the Ecology Seminar at Tohoku University, Sendai, Japan.</span>
+                    </li>
+                    <li data-cat="note">
+                        <span class="date"><span class="tag">Note</span>Jun</span>
+                        <span class="text">Several independent Japanese researchers generously provided me with a collection of myxomycete fruiting bodies. I would like to express my sincere gratitude to them.</span>
+                    </li>
+                    <li data-cat="field">
+                        <span class="date"><span class="tag">Field</span>May–Jun</span>
+                        <span class="text">I conducted field surveys of nivicolous myxomycetes and the genus <em>Diphasiastrum</em> in Hokkaido, Japan.</span>
+                    </li>
+                    <li data-cat="talk">
+                        <span class="date"><span class="tag">Talk</span>May 16–18</span>
+                        <span class="text">I presented an oral talk at the 69th annual meeting of the Mycological Society of Japan (MSJ 2025), Chiba, Japan.</span>
+                    </li>
+                </ul>
+            </section>
+        </details>
 
         <h2>Contact</h2>
-        <p class="contact-line">
-            <span class="label">Mail</span>
-            <span id="email-link"></span>
-        </p>
-        <script>
-        (function() {
-            var user = 'maho.inoue';
-            var domain = 'uni-greifswald.de';
-            var addr = user + '@' + domain;
-            var a = document.createElement('a');
-            a.href = 'mailto:' + addr;
-            a.textContent = addr;
-            document.getElementById('email-link').appendChild(a);
-        })();
-        </script>
-        
+        <p class="contact-line"><span class="label">Mail</span> <a href="/cdn-cgi/l/email-protection#92fff3fafdbcfbfcfde7f7d2e7fcfbbff5e0f7fbf4e1e5f3fef6bcf6f7"><span class="__cf_email__" data-cfemail="cca1ada4a3e2a5a2a3b9a98cb9a2a5e1abbea9a5aabfbbada0a8e2a8a9">[email&#160;protected]</span></a></p>
+
         <footer class="site-foot">
             <span>© 2025–2026 Maho Inoue</span>
-            <span>Last updated: 27 May 2026</span>
+            <span>Last updated: 5 June 2026</span>
         </footer>
 
     </main>

@@ -215,23 +215,44 @@ hr {
 
 .news-list li {
     display: grid;
-    grid-template-columns: 5.5rem 1fr;
-    column-gap: 1rem;
-    padding: 0.55rem 0;
+    grid-template-columns: 6rem 1fr;
+    column-gap: 1.1rem;
+    padding: 0.6rem 0;
     border-bottom: 1px dotted var(--rule-soft);
     line-height: 1.55;
 }
 .news-list li:last-child { border-bottom: 0; }
 
+/* meta column: a category tag stacked above the date */
 .news-list .date {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
     font-family: var(--sans);
     font-size: 0.76rem;
     font-weight: 500;
     letter-spacing: 0.03em;
     color: var(--ink-meta);
-    padding-top: 0.22rem;
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
+    padding-top: 0.15rem;
+}
+
+/* the category tag, a real element at the top of the meta column */
+.news-list .tag {
+    align-self: flex-start;
+    display: inline-block;
+    padding: 0.1rem 0.45rem;
+    border-radius: 0.3rem;
+    font-size: 0.64rem;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    line-height: 1.45;
+    color: var(--cat, var(--ink-meta));
+    background: color-mix(in oklch, var(--cat, var(--ink-meta)) 12%, transparent);
+    border: 1px solid color-mix(in oklch, var(--cat, var(--ink-meta)) 32%, transparent);
 }
 
 .news-list .text {
@@ -240,6 +261,51 @@ hr {
 .news-list .text strong {
     color: var(--ink);
     font-weight: 500;
+}
+
+/* category colours */
+.news-list li[data-cat="paper"] { --cat: oklch(47% 0.085 150); }
+.news-list li[data-cat="talk"]  { --cat: oklch(49% 0.090 250); }
+.news-list li[data-cat="field"] { --cat: oklch(50% 0.085 65);  }
+.news-list li[data-cat="note"]  { --cat: oklch(52% 0.015 100); }
+
+/* Japanese tags: softer typography */
+html[lang="ja"] .news-list .tag {
+    text-transform: none;
+    letter-spacing: 0.04em;
+    font-size: 0.66rem;
+}
+
+/* collapsible archive of earlier years */
+.news-archive {
+    margin-top: 1.2rem;
+}
+.news-archive > summary {
+    list-style: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-family: var(--sans);
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: var(--accent);
+    padding: 0.5rem 0;
+}
+.news-archive > summary::-webkit-details-marker { display: none; }
+.news-archive > summary::before {
+    content: "▸";
+    font-size: 0.72em;
+    color: var(--ink-meta);
+    transition: transform 0.15s ease;
+}
+.news-archive[open] > summary::before { transform: rotate(90deg); }
+.news-archive > summary:hover { color: var(--accent); }
+.news-archive > summary:hover::before { color: var(--accent); }
+.news-archive > summary .arch-count {
+    color: var(--ink-meta);
+    font-weight: 400;
 }
 
 /* mobile: stack date above text */

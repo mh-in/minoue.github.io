@@ -148,6 +148,16 @@ h3 {
     margin: 1.6rem 0 0.5rem;
 }
 
+/* Bilingual subtitle appended to an English heading on shared pages */
+.h-jp {
+    font-family: 'Noto Serif JP', var(--serif);
+    font-weight: 400;
+    font-size: 0.82rem;
+    letter-spacing: 0.04em;
+    color: var(--ink-meta);
+    margin-left: 0.55em;
+}
+
 p { margin: 0 0 1rem; }
 
 em, i { font-style: italic; }
@@ -460,6 +470,30 @@ html[lang="ja"] .news-list .tag {
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--ink-meta);
+}
+
+/* Associated data / code DOIs attached to a paper */
+.pub-list .artifacts {
+    display: block;
+    font-family: var(--sans);
+    font-size: 0.78rem;
+    color: var(--ink-meta);
+    margin-top: 0.3rem;
+}
+.pub-list .artifacts .art-label {
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 0.66rem;
+    color: var(--ink-meta);
+}
+.pub-list .artifacts a {
+    color: var(--ink-soft);
+    border-bottom-color: var(--rule);
+    font-variant-numeric: tabular-nums;
+}
+.pub-list .artifacts .sep {
+    color: var(--rule);
+    margin: 0 0.5rem;
 }
 
 /* Tag — small organism marker */

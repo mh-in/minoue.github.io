@@ -711,6 +711,12 @@ ol.projects > li {
     line-height: 1.55;
 }
 ol.projects > li:last-child { border-bottom: 0; }
+ol.projects > li .proj-title {
+    display: block;
+    color: var(--ink);
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+}
 ol.projects > li::before {
     content: counter(proj, decimal-leading-zero);
     position: absolute;

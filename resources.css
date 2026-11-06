@@ -118,7 +118,12 @@
     border-radius: 8px;
     padding: 0.2rem 0.9rem;
 }
-.util-body .term-table { font-size: 0.88rem; }
+/* Fixed column widths so that every browser lays the table out the same way
+   (with automatic layout, Safari spread the columns more widely than Chrome) */
+.util-body .term-table { font-size: 0.88rem; table-layout: fixed; }
+.util-body .term-table col.c-en   { width: 46%; }
+.util-body .term-table col.c-page { width: 3.2rem; }
+.util-body .term-table td.en { overflow-wrap: anywhere; }
 .util-body .term-table th {
     color: var(--u-muted);
     letter-spacing: 0.04em;

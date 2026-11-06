@@ -1,0 +1,119 @@
+/* =====================================================================
+   Resources — utility pages (glossary, specimen guide, ...)
+   Loaded after styles.css on pages linked from the Resources page.
+   The masthead and navigation keep the site style; only the content
+   inside .util-body takes the practical look of the Reticularia tool
+   (sans-serif, smaller text, green accent, white cards).
+   ===================================================================== */
+
+.util-body {
+    --u-ink:         #1d2327;
+    --u-muted:       #5f6b73;
+    --u-line:        #d8dee3;
+    --u-card:        #ffffff;
+    --u-accent:      #2f6f5e;
+    --u-accent-soft: #e8f2ee;
+    --u-warn:        #8a5a00;
+    --u-warn-soft:   #fdf3df;
+
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", "Yu Gothic", sans-serif;
+    font-size: 0.94rem;
+    line-height: 1.7;
+    color: var(--u-ink);
+    font-variant-numeric: normal;
+}
+
+.util-body h1,
+.util-body h2,
+.util-body h3 {
+    font-family: inherit;
+    color: var(--u-ink);
+    letter-spacing: 0.01em;
+}
+.util-body h1 {
+    font-size: 1.45rem;
+    font-weight: 700;
+    margin-bottom: 1.1rem;
+}
+.util-body h2 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--u-accent);
+    margin: 2rem 0 0.7rem;
+    padding-bottom: 0.35rem;
+    border-bottom: 1px solid var(--u-line);
+}
+.util-body h3 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin: 1.3rem 0 0.4rem;
+}
+
+.util-body .sub-h {
+    color: var(--u-accent);
+    letter-spacing: 0.08em;
+}
+
+.util-body p { margin: 0 0 0.8rem; }
+.util-body strong, .util-body b { font-weight: 700; color: var(--u-ink); }
+
+.util-body a {
+    color: var(--u-accent);
+    border-bottom-color: color-mix(in srgb, var(--u-accent) 35%, transparent);
+}
+.util-body a:hover { border-bottom-color: var(--u-accent); }
+
+/* Lead text: a soft card like the tool's notice box */
+.util-body .intro {
+    background: var(--u-accent-soft);
+    border-left: 3px solid var(--u-accent);
+    border-radius: 6px;
+    padding: 0.8rem 1rem 0.2rem;
+    margin-bottom: 1.4rem;
+    font-size: 0.9rem;
+}
+
+/* Lists */
+.util-body .body-list {
+    color: var(--u-ink);
+    line-height: 1.7;
+    padding-left: 1.3rem;
+    margin: 0.3rem 0 0.9rem;
+}
+.util-body .body-list li { margin: 0.3rem 0; }
+.util-body .body-list li::marker { color: var(--u-accent); }
+.util-body small {
+    display: block;
+    font-size: 0.82rem;
+    color: var(--u-muted);
+    line-height: 1.6;
+    margin-top: 0.15rem;
+}
+
+/* Tables as white cards */
+.util-body .table-wrap {
+    background: var(--u-card);
+    border: 1px solid var(--u-line);
+    border-radius: 8px;
+    padding: 0.2rem 0.9rem;
+}
+.util-body .term-table { font-size: 0.88rem; }
+.util-body .term-table th {
+    color: var(--u-muted);
+    letter-spacing: 0.04em;
+    border-bottom-color: var(--u-line);
+}
+.util-body .term-table td { border-bottom: 1px solid #eef1f3; }
+.util-body .term-table tr:last-child td { border-bottom: 0; }
+.util-body .term-table td.en { color: var(--u-muted); }
+.util-body .term-table td.page { color: var(--u-muted); }
+
+/* Contact rows */
+.util-body .contact-block {
+    border-bottom-color: var(--u-line);
+}
+.util-body .contact-block:first-of-type { border-top-color: var(--u-line); }
+.util-body .contact-block .contact-label { color: var(--u-muted); }
+.util-body .contact-block .contact-value { color: var(--u-ink); }
+
+.util-body .backlink { margin-top: 1.6rem; }

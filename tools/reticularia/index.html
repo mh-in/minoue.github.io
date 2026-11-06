@@ -1,0 +1,2039 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reticularia 同定支援（試作）</title>
+<style>
+  :root{
+    --ink:#1d2327; --muted:#5f6b73; --line:#d8dee3; --bg:#f6f7f8; --card:#fff;
+    --accent:#2f6f5e; --accent-soft:#e8f2ee;
+    --warn:#8a5a00; --warn-soft:#fdf3df;
+    --bad:#8c2f2f; --bad-soft:#fbeaea;
+    --l1:#3d6b35; --l2:#2f5d8c; --l3:#6a3d8c;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP","Yu Gothic",sans-serif;
+    font-size:15px; line-height:1.7;
+  }
+  header{background:#fff; border-bottom:1px solid var(--line); padding:20px 24px 14px}
+  .wrap{max-width:1180px; margin:0 auto}
+  h1{font-size:20px; margin:0 0 4px; letter-spacing:.01em}
+  .sub{color:var(--muted); font-size:13px; margin:0}
+  .scope{
+    margin:12px 0 0; padding:10px 12px; background:var(--warn-soft);
+    border-left:3px solid var(--warn); border-radius:4px; font-size:13px; color:#4a3a12;
+  }
+  .controls{display:flex; flex-wrap:wrap; gap:14px; align-items:center; margin-top:14px}
+  .ctl{display:flex; gap:6px; align-items:center; font-size:13px; color:var(--muted)}
+  .seg{display:inline-flex; border:1px solid var(--line); border-radius:6px; overflow:hidden; background:#fff}
+  .seg button{border:0; background:transparent; padding:5px 10px; font-size:13px; cursor:pointer; color:var(--ink); font-family:inherit}
+  .seg button+button{border-left:1px solid var(--line)}
+  .seg button[aria-pressed="true"]{background:var(--accent); color:#fff}
+  select{font-family:inherit; font-size:13px; padding:5px 8px; border:1px solid var(--line); border-radius:6px; background:#fff}
+  .ghost{border:1px solid var(--line); background:#fff; border-radius:6px; padding:5px 10px; font-size:13px; cursor:pointer; font-family:inherit; color:var(--ink)}
+  .ghost:hover{background:#f0f2f4}
+  nav{background:#fff; border-bottom:1px solid var(--line)}
+  nav .wrap{display:flex; gap:2px}
+  nav button{
+    border:0; border-bottom:2px solid transparent; background:transparent;
+    padding:10px 14px; font-size:14px; cursor:pointer; color:var(--muted); font-family:inherit;
+  }
+  nav button[aria-selected="true"]{color:var(--ink); border-bottom-color:var(--accent); font-weight:600}
+  main{padding:20px 24px 60px}
+  .panel{display:none}
+  .panel.active{display:block}
+  .grid{display:grid; grid-template-columns:minmax(0,1fr) 400px; gap:22px; align-items:start}
+  @media(max-width:960px){ .grid{grid-template-columns:1fr} }
+  .card{background:var(--card); border:1px solid var(--line); border-radius:10px}
+  .char{padding:13px 15px; border-bottom:1px solid var(--line)}
+  .char:last-child{border-bottom:0}
+  .char-head{display:flex; gap:7px; align-items:center; flex-wrap:wrap}
+  .char-title{font-weight:600; font-size:14px}
+  .char-q{font-size:13px; color:var(--muted); margin:3px 0 9px}
+  .states{display:flex; flex-wrap:wrap; gap:6px}
+  .states button{
+    border:1px solid var(--line); background:#fff; border-radius:999px;
+    padding:4px 11px; font-size:13px; cursor:pointer; font-family:inherit; color:var(--ink);
+  }
+  .states button:hover{border-color:var(--accent)}
+  .states button[aria-pressed="true"]{background:var(--accent); border-color:var(--accent); color:#fff}
+  .states button.na{color:var(--muted); font-size:12px}
+  .states button.na[aria-pressed="true"]{background:#7b848a; border-color:#7b848a; color:#fff}
+  .numrow{display:flex; gap:8px; align-items:center; margin-top:2px}
+  .numrow input[type=number]{
+    width:110px; padding:5px 8px; border:1px solid var(--line); border-radius:6px;
+    font-family:inherit; font-size:14px;
+  }
+  .char-foot{display:flex; gap:10px; align-items:center; margin-top:8px; font-size:12px; color:var(--muted)}
+  .char-foot .src{opacity:.9}
+  .badge{font-size:11px; padding:1px 6px; border-radius:4px; border:1px solid transparent; white-space:nowrap}
+  .badge.L1{color:var(--l1); background:#eef4ec; border-color:#cfe0c9}
+  .badge.L2{color:var(--l2); background:#eaf1f8; border-color:#c8dcee}
+  .badge.L3{color:var(--l3); background:#f1ebf7; border-color:#dccde9}
+  .badge.rel-high{background:#e8f2ee; color:var(--accent); border-color:#c3ded4}
+  .badge.rel-med{background:#f1f3f4; color:#4b555c; border-color:#dde3e6}
+  .badge.rel-low{background:#fafafa; color:#8a939a; border-color:#e6eaec}
+  .badge.elim{background:var(--bad-soft); color:var(--bad); border-color:#eecfcf}
+  .hint{font-size:12px; color:var(--muted); margin-top:6px}
+  .result{position:sticky; top:16px; display:flex; flex-direction:column; gap:12px;
+    max-height:calc(100vh - 32px); overflow:auto; padding-right:2px}
+  .verdict{padding:14px 16px; border-radius:10px; background:var(--accent-soft); border:1px solid #c3ded4}
+  .verdict.none{background:var(--bad-soft); border-color:#eecfcf}
+  .verdict h2{margin:0 0 2px; font-size:15px; letter-spacing:.02em}
+  .verdict p{margin:0; font-size:13px; color:#3d4b45}
+  .cand{padding:12px 14px; border:1px solid var(--line); border-left:3px solid var(--accent); border-radius:8px; background:#fff}
+  .cand.weak{border-left-color:#c9a227}
+  .cand-name{font-weight:600; font-style:italic}
+  .cand-meta{font-size:12px; color:var(--muted); margin-top:2px}
+  .chips{display:flex; flex-wrap:wrap; gap:5px; margin-top:8px}
+  .chip{font-size:11.5px; padding:2px 7px; border-radius:4px; background:#f0f3f2; color:#3f4a45; border:1px solid #e0e6e3}
+  .chip.near{background:var(--warn-soft); border-color:#efd9a9; color:var(--warn)}
+  .chip.bad{background:var(--bad-soft); border-color:#eecfcf; color:var(--bad)}
+  .note{font-size:12.5px; padding:9px 11px; border-radius:7px; border:1px solid; }
+  .note.warn{background:var(--warn-soft); border-color:#efd9a9; color:#5a4410}
+  .note.info{background:#eef3f6; border-color:#d5e2e9; color:#33454f}
+  .note b{display:block; font-size:12px; margin-bottom:2px}
+  .next{padding:13px 15px; border-radius:10px; background:#fff; border:1px solid var(--accent); box-shadow:0 1px 0 rgba(47,111,94,.06)}
+  .next h2{margin:0 0 4px; font-size:14px; color:var(--accent)}
+  .next p{margin:0 0 8px; font-size:13px}
+  .elim{font-size:12.5px; color:var(--muted)}
+  .elim summary{cursor:pointer; color:var(--ink); font-size:13px}
+  .elim ul{margin:6px 0 0; padding-left:18px}
+  .elim li{margin-bottom:5px}
+  table{width:100%; border-collapse:collapse; font-size:12.5px}
+  .matrix th,.matrix td{border:1px solid var(--line); padding:6px 8px; vertical-align:top; text-align:left}
+  .matrix th{background:#f3f5f6; font-weight:600; position:sticky; top:0}
+  .matrix td.gap{color:#b3b9bd}
+  .matrix td.inf{color:var(--warn)}
+  .matrix td.prov{color:#6a5a1a; background:#fffdf4}
+  .matrix td.num{white-space:nowrap}
+  .matrix td.wide{white-space:normal; min-width:160px}
+  .tbl-wrap{overflow:auto; background:#fff; border:1px solid var(--line); border-radius:10px; max-height:66vh}
+  .legend{font-size:12px; color:var(--muted); margin:8px 0 14px}
+  h3{font-size:15px; margin:22px 0 8px}
+  .about p{font-size:14px; margin:0 0 10px}
+  .about ul{font-size:14px; margin:0 0 12px; padding-left:22px}
+  .about li{margin-bottom:6px}
+  .conflict{padding:11px 13px; border:1px solid #efd9a9; background:#fffdf7; border-radius:8px; margin-bottom:9px}
+  .conflict b{font-size:13px}
+  .conflict p{margin:3px 0 0; font-size:13px; color:#4f4a3a}
+  textarea{width:100%; min-height:180px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12.5px; padding:10px; border:1px solid var(--line); border-radius:8px}
+  .testrow{display:flex; gap:10px; align-items:baseline; font-size:13px; padding:6px 0; border-bottom:1px dashed var(--line)}
+  .pass{color:var(--accent); font-weight:600}
+  .fail{color:var(--bad); font-weight:600}
+  .small{font-size:12px; color:var(--muted)}
+  .toolbar{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px}
+  .gsec{margin-bottom:26px}
+  .gsec h3{margin-top:6px}
+  .ggrid{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px}
+  @media(max-width:820px){ .ggrid{grid-template-columns:1fr} }
+  .gcell{background:#fff; border:1px solid var(--line); border-radius:8px; padding:6px}
+  .gcell img{width:100%; display:block; border-radius:5px}
+  .gcap{font-size:12px; color:var(--muted); padding:5px 2px 1px}
+  .gcap i{font-style:italic; color:var(--ink)}
+  .anchor{margin:14px 0 20px}
+  .astate{font-weight:600; font-size:14px; border-left:3px solid var(--accent); padding-left:8px; margin-bottom:8px}
+  .aitems{display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:12px}
+  .aitem{background:#fff; border:1px solid var(--line); border-radius:8px; padding:7px}
+  .aitem.wide{grid-column:1/-1}
+  .aimgs{display:flex; gap:4px; flex-wrap:wrap}
+  .aimgs img{width:100%; max-width:160px; border-radius:4px; display:block}
+  .aimgs img.wide{max-width:100%}
+  .acap{font-size:12px; color:var(--muted); margin-top:5px}
+  .acap i{font-style:italic; color:var(--ink)}
+  .aquote{font-size:12px; color:#4a5550; background:#f4f6f5; border-radius:5px; padding:5px 7px; margin-top:5px; line-height:1.5}
+  .missing{display:flex; align-items:center; justify-content:center; height:90px; border:1px dashed var(--line); border-radius:6px; color:#9aa3a9; font-size:12px}
+  .gsub{margin:16px 0 10px}
+  .gsub h4{margin:0 0 7px; font-size:13px}
+  .pgrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:8px}
+  .pcell{display:block; background:#fff; border:1px solid var(--line); border-radius:6px; padding:4px; text-decoration:none}
+  .pcell.wide{grid-column:1/-1}
+  .pcell img{width:100%; display:block; border-radius:3px}
+  .pcap{font-size:11px; color:var(--muted); margin-top:3px; line-height:1.4}
+  .statewrap{display:inline-flex; align-items:center; gap:4px}
+  .sthumb{display:inline-block; line-height:0}
+  .sthumb img{height:34px; width:auto; max-width:110px; object-fit:cover; border-radius:4px; border:1px solid var(--line); background:#fff}
+  .sthumb:hover img{border-color:var(--accent)}
+  .apanel{font-size:11.5px; color:var(--muted); margin-top:3px; line-height:1.45}
+  .claim{background:#fff; border:1px solid var(--line); border-radius:10px; padding:16px 18px; margin-bottom:18px}
+  .claim h2{font-size:16px; margin:0 0 6px}
+  .claim .cnum{display:inline-block; width:22px; height:22px; line-height:22px; text-align:center;
+    border-radius:50%; background:var(--accent); color:#fff; font-size:12px; margin-right:8px; vertical-align:2px}
+  .claim p{font-size:13.5px; color:#3c464c; margin:0 0 12px}
+  .claim .src{font-size:11.5px; color:var(--muted); margin-top:8px}
+  table.mesh{border-collapse:collapse; font-size:13px}
+  table.mesh th,table.mesh td{border:1px solid var(--line); padding:9px 12px; text-align:center; min-width:120px}
+  table.mesh th{background:#f4f6f7; font-weight:600; font-size:12px}
+  table.mesh th.corner{background:#fff}
+  table.mesh td.filled{background:var(--accent-soft)}
+  table.mesh td i{font-style:italic}
+  table.mesh td.empty{color:#b6bcc0}
+  .bars{display:flex; flex-direction:column; gap:5px}
+  .barrow{display:grid; grid-template-columns:190px 1fr 64px; gap:8px; align-items:center; font-size:12.5px}
+  .barrow .lab{color:#3c464c; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .barbg{background:#eef1f2; border-radius:3px; height:14px; position:relative}
+  .barfill{background:var(--accent); height:14px; border-radius:3px}
+  .barfill.zero{background:#d3d8da}
+  .barrow .val{text-align:right; color:var(--muted); font-variant-numeric:tabular-nums}
+  .barrow .tag{font-size:10.5px; color:var(--warn); background:var(--warn-soft); border:1px solid #efd9a9;
+    border-radius:3px; padding:0 4px; margin-left:4px; white-space:nowrap}
+  .barrow{grid-template-columns:190px 1fr 64px auto}
+  .barrow.hi .lab{font-weight:600}
+  .figcap{font-size:12px; color:var(--muted); background:#f7f8f8; border-left:2px solid var(--line);
+    padding:7px 9px; border-radius:4px; line-height:1.55; margin:0 0 9px}
+  #seqInput{min-height:150px}
+  .seqmeta{font-size:12px; color:var(--muted); margin:8px 0 0}
+  .agree{background:var(--accent-soft); border:1px solid #c3ded4}
+  .disagree{background:var(--bad-soft); border:1px solid #eecfcf}
+
+  /* ヘッダーの注意書きと判定タブの設定 */
+  .scope details.more{display:inline}
+  .scope details.more > summary{display:inline; cursor:pointer; color:var(--warn); text-decoration:underline}
+  .scope details.more[open] > summary{display:none}
+  .scope details.more > div{margin-top:4px}
+  .keybar{background:#fff; border:1px solid var(--line); border-radius:10px; padding:12px 15px; margin-bottom:16px}
+  .keybar .controls{margin-top:0}
+  details.modes{margin-top:10px; font-size:13px}
+  details.modes > summary{cursor:pointer; color:var(--muted)}
+  details.modes > summary #modeNow{color:var(--ink); font-weight:600}
+  details.modes .seg{margin:8px 0 0}
+  details.modes ul{margin:8px 0 0; padding-left:20px; color:#3c464c; font-size:12.5px}
+  details.modes li{margin-bottom:3px}
+
+  /* 英語の概要 */
+  details.en{margin:10px 0 0; font-size:13px}
+  details.en > summary{cursor:pointer; color:var(--accent); font-weight:600; display:inline-block}
+  details.en[open]{background:#fff; border:1px solid var(--line); border-radius:8px; padding:10px 14px}
+  details.en p{margin:8px 0 0; color:#3c464c}
+  details.en ul{margin:8px 0 0; padding-left:20px; color:#3c464c}
+  details.en li{margin-bottom:4px}
+  details.en .cite{color:var(--muted); font-size:12.5px}
+
+  /* 判定タブ：主要形質と補助形質 */
+  .cgroup{padding:12px 15px; background:#f4f8f6; border-bottom:1px solid var(--line)}
+  .cgroup h2{margin:0; font-size:14px; color:var(--accent)}
+  .cgroup p{margin:2px 0 0; font-size:12.5px; color:var(--muted)}
+  details.aux > summary{list-style:none; cursor:pointer; padding:12px 15px; background:#fafbfb;
+    border-top:1px solid var(--line); font-weight:600; font-size:14px}
+  details.aux > summary::-webkit-details-marker{display:none}
+  details.aux > summary::before{content:'▸ '; color:var(--muted)}
+  details.aux[open] > summary::before{content:'▾ '}
+  details.aux > summary .small{font-weight:400}
+  .sublevel{padding:7px 15px; background:#fafbfb; border-bottom:1px solid var(--line); font-size:12.5px; color:var(--muted)}
+
+  /* 図版タブ：胞子の比較 */
+  .scmp{display:flex; flex-direction:column; gap:10px; margin-top:10px}
+  .scmp-row{background:#fff; border:1px solid var(--line); border-radius:8px; padding:8px 10px}
+  .scmp-head{display:flex; flex-wrap:wrap; gap:6px 10px; align-items:baseline; margin-bottom:6px}
+  .scmp-head .nm{font-style:italic; font-weight:600}
+  .scmp-row img{width:100%; display:block; border-radius:4px}
+  .scmp-group{font-size:12.5px; font-weight:600; color:var(--accent); margin:12px 0 0}
+  .chip.inf{background:var(--warn-soft); border-color:#efd9a9; color:var(--warn)}
+
+  /* 形質行列：出典の表示 */
+  .matrix .srcline{display:block; font-size:11px; color:var(--muted); margin-top:3px; line-height:1.4; white-space:normal; min-width:9em}
+  /* 横にスクロールしても形質名が見えるよう、1列目を固定 */
+  .matrix tbody th{position:sticky; left:0; z-index:1; background:#fff; min-width:9em}
+  .matrix thead th:first-child{left:0; z-index:3}
+  .ghost[aria-pressed="true"]{background:var(--accent-soft); border-color:#c3ded4; color:var(--accent)}
+
+  /* 横幅の狭い画面 */
+  nav .wrap{overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none}
+  nav .wrap::-webkit-scrollbar{display:none}
+  nav button{flex:0 0 auto; white-space:nowrap}
+  .tbl-scroll{overflow-x:auto}
+  .mbar{display:none}
+  @media(max-width:960px){
+    .result{position:static; max-height:none; overflow:visible}
+    body.tab-key .mbar{display:flex; position:fixed; left:0; right:0; bottom:0; z-index:10;
+      gap:10px; align-items:center; justify-content:space-between;
+      padding:10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+      background:#fff; border-top:1px solid var(--line); box-shadow:0 -2px 8px rgba(0,0,0,.06); font-size:13px}
+    .mbar .mtext{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+    body.tab-key main{padding-bottom:90px}
+  }
+  @media(max-width:600px){
+    header{padding:16px 16px 12px}
+    main{padding:16px 16px 60px}
+    .barrow{grid-template-columns:minmax(0,1fr) 70px 44px auto}
+    .states button{padding:6px 11px}
+    /* 状態ボタンは1行に1つ。図版のサムネイルはボタンの下に回す */
+    .states{flex-direction:column; align-items:stretch}
+    .statewrap{display:flex; flex-wrap:wrap}
+    .statewrap > button{flex:1 1 100%; text-align:left; border-radius:8px}
+    .controls{gap:10px 14px}
+    .ctl{flex-wrap:wrap}
+    .ctl > span:first-child{white-space:nowrap}
+    .seg button{padding:5px 8px; font-size:12.5px; white-space:nowrap}
+    .scope{font-size:12px}
+  }
+  header .home{margin:0 0 4px; font-size:12px}
+  header .home a{color:inherit; opacity:.75}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <p class="home"><a href="https://mh-in.github.io/minoue.github.io/resources-jp.html">← 井上真帆のサイト：資料・ツール</a></p>
+    <h1>Reticularia 同定支援（試作）</h1>
+    <p class="sub">根拠：Leontyev et al. 2026, <i>Fungal Systematics and Evolution</i> 17: 19–29（<a id="srcLink" href="#">PDF</a>）と補足資料（Table S1・S2 ほか） <span class="badge rel-low" id="review"></span></p>
+    <details class="en" id="summaryEn" lang="en"></details>
+    <div class="scope"><span id="scopeShort"></span>
+      <details class="more"><summary>詳しく</summary><div id="scope"></div></details>
+    </div>
+  </div>
+</header>
+
+<nav>
+  <div class="wrap">
+    <button data-tab="key" aria-selected="true">判定</button>
+    <button data-tab="claims">論文の要点</button>
+    <button data-tab="matrix">形質行列</button>
+    <button data-tab="gallery">図版</button>
+    <button data-tab="seq">配列</button>
+    <button data-tab="record">記録・出力</button>
+    <button data-tab="about">この試作について</button>
+  </div>
+</nav>
+
+<main class="wrap">
+  <section class="panel active" id="panel-key">
+    <div class="keybar">
+      <div class="controls">
+        <div class="ctl"><span>観察できる範囲</span>
+          <div class="seg" id="levelSeg">
+            <button data-level="1">肉眼・ルーペ</button>
+            <button data-level="2">実体顕微鏡</button>
+            <button data-level="3">光学顕微鏡＋染色</button>
+          </div>
+        </div>
+        <div class="ctl"><span>産地</span>
+          <select id="region"><option value="">未入力</option></select>
+        </div>
+        <button class="ghost" id="reset">観察をリセット</button>
+      </div>
+      <details class="modes" id="modeBox">
+        <summary>判定の厳しさ：<span id="modeNow"></span></summary>
+        <div class="seg" id="modeSeg">
+          <button data-mode="standard">標準</button>
+          <button data-mode="strict">厳密</button>
+          <button data-mode="lenient">緩和</button>
+        </div>
+        <ul>
+          <li><b>標準</b>（おすすめ）：除外に使う形質（「まず見る形質」）が記載と食い違えば、候補から外します。</li>
+          <li><b>厳密</b>：すべての形質で、食い違えば外します。皮層のように種内で変わる形質でも外すので、誤観察に弱くなります。</li>
+          <li><b>緩和</b>：どの形質でも外さず、観察に合う度合いで並べるだけにします。</li>
+          <li>どのモードでも、推定（◐）・係争中（？）のセルでは外しません。</li>
+        </ul>
+      </details>
+    </div>
+    <div class="grid">
+      <div class="card" id="chars"></div>
+      <div class="result" id="result"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-claims">
+    <p class="legend" id="claims-lead"></p>
+    <div id="claims"></div>
+  </section>
+
+  <section class="panel" id="panel-matrix">
+    <p class="legend">
+      ●＝記載あり　◐＝記載からの推定　？＝係争中（本文の中で記述が食い違う）　✎＝他文献からの候補（未裁定）　—＝記載なし（判定では中立）。
+      ◐ と ？ のセルは、観察と食い違っても候補から外しません（警告と順位の減点のみ）。
+      出典の値が割れているセルは、片方に寄せずに併記しています（例：胞子径「Poulain 6–8／Stephenson 8–9」）。
+      セルにマウスを置くと出典が出ます。複数の状態が並んでいる場合は「そのいずれか、または同一標本で混在」を意味します。
+      信頼度は「高／中／低」、除外は「この形質が食い違えば候補から外す」の意味です。
+    </p>
+    <div class="toolbar"><button class="ghost" id="toggleSrc" aria-pressed="false">出典をセルに表示</button></div>
+    <div class="tbl-wrap"><table class="matrix" id="matrix"></table></div>
+  </section>
+
+  <section class="panel" id="panel-gallery">
+    <p class="legend">
+      状態の判定は形容詞ではなく画像で合わせるのが確実です。
+      最初に<strong>胞子の比較</strong>（決め手になる胞子を4種並べたもの）、
+      続いて<strong>状態ごとの見本</strong>（本文が「Fig. 5M」のように図を名指ししている箇所を対応させたもの）、
+      最後に<strong>パネル単位の図版一覧</strong>です。パネルの内容は図の脚注に従い、行の意味は種によって違うので注意してください
+      （例：<i>jurana</i> は D が着合子嚢体、<i>tasmanica</i> は D が皮層）。
+    </p>
+    <div id="gallery"></div>
+  </section>
+
+  <section class="panel" id="panel-seq">
+    <p class="legend">
+      手元の Sanger リードを貼ると、この論文の参照配列（nucSSU 45本・mtSSU 28本＋対外群5本）の中で
+      最も近いものと、その種・リボタイプを表示します。判定は k-mer（12塩基）の含有率で、
+      <strong>相同率ではありません</strong>。BLAST の代替ではなく、当たり付けの道具です。
+      リボタイプの細分（rt1a と rt2 など）は原理的に区別できないので、種レベルで読んでください。
+    </p>
+    <div class="toolbar">
+      <div class="ctl"><span>マーカー</span>
+        <div class="seg" id="seqMarker">
+          <button data-marker="nucSSU">nucSSU</button>
+          <button data-marker="mtSSU">mtSSU</button>
+        </div>
+      </div>
+      <button class="ghost" id="seqRun">照合する</button>
+      <button class="ghost" id="seqClear">クリア</button>
+    </div>
+    <textarea id="seqInput" placeholder="FASTA 形式でも、配列だけでも可（改行・数字・ギャップは取り除いて比較します）"></textarea>
+    <div id="seqResult" style="margin-top:14px"></div>
+  </section>
+
+  <section class="panel" id="panel-record">
+    <div class="toolbar">
+      <button class="ghost" id="dlObs">観察記録をCSVで保存</button>
+      <button class="ghost" id="dlJson">観察記録をJSONで保存</button>
+      <button class="ghost" id="dlMatrix">形質行列をCSVで保存</button>
+      <button class="ghost" id="copyJson">JSONをコピー</button>
+    </div>
+    <h3>現在の観察</h3>
+    <div id="obsTable"></div>
+    <h3>判定の生データ</h3>
+    <textarea id="obsJson" readonly></textarea>
+  </section>
+
+  <section class="panel about" id="panel-about">
+    <h3>これは何か</h3>
+    <p>
+      分類学的な「検索表」を、分岐式ではなく<strong>多項目選択（multi-access key）</strong>として作った試作です。
+      観察できた形質だけを入れると候補が絞られ、次に観るべき形質を1つ提示します。
+      分岐式のように「最初の質問を間違えると最後まで別の種に着く」ことがありません。
+    </p>
+    <h3>設計上、意図的にやっていること</h3>
+    <ul>
+      <li><strong>空欄は中立。</strong>この論文に記載がない形質は、除外にも支持にも使いません。空欄を「その形質がない」と解釈すると、記載の薄い種が不当に落ちます。</li>
+      <li><strong>除外は信頼できる形質だけ。</strong>皮層のように種内で変動する形質は、食い違っても警告に留めます（標準モード）。厳密モードでは全形質で除外します。</li>
+      <li><strong>同点は同点として出す。</strong>無理に1種に決めません。</li>
+      <li><strong>未記載系統を警告として持つ。</strong>形態未記載の分子系統（Reticularia sp., splendens rt3）は、jurana か splendens が候補に1つでも残っていれば警告します。形態では区別できないことが要点なので、出し漏れを避けています。既知の産地は参考として添えますが、絞り込みには使いません（既知の標本が数点しかないため）。</li>
+      <li><strong>推定は推定と表示する。</strong>jurana と splendens の「網目以外の装飾」は診断文からの推定で、原記載には明記がありません。</li>
+      <li><strong>推定・係争中のセルでは除外しない。</strong>◐（推定）と ？（係争中）のセルは、観察と食い違っても候補から外さず、警告と順位の減点に留めます。そのため tasmanica と jurana、lucidula と splendens は、場合によっては両方が候補に残ります。論文の記述から確実に言えるのがそこまでだからです。</li>
+    </ul>
+    <h3>この試作の限界</h3>
+    <ul>
+      <li>根拠は1論文とその補足表のみ。5種のうち完全な種記載があるのは lucidula と tasmanica の2種だけです。</li>
+      <li>lycoperdon は本論文に種記載がなく、6セルはすべて他文献（Poulain 2011、Stephenson 2003）からの候補（✎）です。</li>
+      <li>配列の照合は 12-mer の含有率による当たり付けです。種レベルの一致は参照内で検証済み（45/45、28/28）ですが、
+        リボタイプの細分（rt1a と rt2 など）は原理的に区別できません。相同率でもありません。</li>
+      <li>2新種はそれぞれ単一地域の標本に基づくため、種内変異（特に胞子装飾）は未評価です。論文自身がそう述べています。</li>
+      <li>胞子装飾の判定には染色・油浸と、比較用の参照画像が必要です。Fig. 3–6 を「図版」タブに収録しましたが、倍率・染色条件を揃えた自分の標本で確認してください。</li>
+    </ul>
+    <h3>係争点（論文内で記述が揺れている箇所）</h3>
+    <div id="conflicts"></div>
+    <h3>セルフテスト</h3>
+    <p class="small">タイプ記載・比較記述から作ったプロファイルを流し、期待どおりに判定できるかを確認します。</p>
+    <div class="toolbar"><button class="ghost" id="runTests">セルフテストを実行</button></div>
+    <div id="testResults"></div>
+  </section>
+</main>
+
+<div class="mbar" id="mbar">
+  <span class="mtext" id="mbarText"></span>
+  <button class="ghost" id="mbarGo">結果を見る</button>
+</div>
+
+<script>window.__DATA__ = {"meta":{"review":{"status":"author","note":"本試作は論文の著者によって公開されています。内容は Leontyev et al. 2026 の記述に基づきます。形質行列への転記は機械的に行っているため、原記載との照合は随時行ってください。"},"version":"0.9.1","title":"Reticularia 同定支援（試作）","source":"Leontyev et al. 2026, Fungal Syst. Evol. 17: 19–29 ＋ Table S1・S2 ＋ Fig. 3–6 ＋ Suppl 3–5（配列・ASAP）","sourceUrl":"https://fuse-journal.org/wp-content/uploads/2026/10/FuseVol17Art2.pdf","supplement":"10.5281/zenodo.17385715","scopeShort":"1本の論文に基づく試作です。空欄は「この論文に記載がない」の意味で、判定では中立に扱います。","scope":"5種のうち完全な種記載があるのは lucidula と tasmanica の2種だけです。jurana・splendens は論文中の比較記述から、lycoperdon は主に他文献から（候補 ✎ として）部分的に収載しているので、空欄が多くなります。空欄は「その形質がない」ではなく「この論文に記載がない」ことを意味し、除外にも支持にも使いません。推定（◐）・係争中（？）のセルも除外には使いません。","summaryEn":{"lead":"A prototype multi-access identification key to Reticularia s. str. (Myxomycetes), built from a single paper and its supplementary data. Prepared by Maho Inoue, one of the co-authors. The interface is currently in Japanese.","citation":"Leontyev DV, Lloyd SJ, Moroz E, Inoue M, Schnittler M (2026). Cryptic speciation in Reticularia: two hardly distinguishable new species from Japan and Tasmania. Fungal Systematics and Evolution 17: 19–29.","points":["Five species are covered: R. jurana, R. lucidula, R. lycoperdon, R. splendens and R. tasmanica. Full descriptions exist only for the two new species; R. jurana and R. splendens are coded from comparative statements in the paper, and R. lycoperdon mainly from other literature (Poulain et al. 2011; Stephenson 2003), marked as provisional.","Enter only what you have observed. An empty cell means \"not stated in the paper\" and is treated as neutral. Inferred (◐) and contested (？) cells never exclude a species; they only lower its rank and add a warning.","R. tasmanica and R. jurana are separated only by the ornamentation of the reticulation-free part of the spore, which the paper does not describe explicitly for R. jurana; the key may therefore leave both as candidates. The same caveat applies to this spore character for R. lucidula vs. R. splendens, although these two also differ in pseudocapillitium and cortex.","Two molecular lineages without a morphological description (Reticularia sp. and R. splendens rt3) cannot be excluded by morphology. The key warns whenever R. jurana or R. splendens remains a candidate, with known localities shown for reference only.","The sequence tab gives a rough nearest match (12-mer containment) against the nucSSU and mtSSU sequences of the paper. It is not a substitute for an alignment or BLAST, and does not resolve ribotypes reliably.","Photographs are reproduced from the paper under CC BY 4.0, with the photographers credited per panel."]}},"regions":[{"id":"Europe","label":"ヨーロッパ"},{"id":"Asia","label":"アジア（日本など）"},{"id":"North America","label":"北アメリカ"},{"id":"South America","label":"南アメリカ"},{"id":"Australia","label":"オーストラリア（タスマニア含む）"},{"id":"other","label":"その他・不明"}],"characters":[{"id":"c01","label":"着合子嚢体の大きさ（長径）","labelEn":"Aethalium size (long axis)","level":1,"type":"num","unit":"mm","tolerance":2,"reliability":"low","eliminates":false,"question":"着合子嚢体（aethalium）の長径を測ってください。","note":"2新種の範囲は大きく重複する（lucidula 7–17 mm、tasmanica 7–43 mm）。ほとんど判別に使えない。","states":[]},{"id":"c02","label":"着合子嚢体の硬さ","labelEn":"Firmness of aethalium","level":1,"type":"ord","ordinal":true,"reliability":"med","eliminates":true,"question":"指で軽く押したとき、形が保たれますか。軽く振ったとき、揺れますか。","note":"著者らは「指で押す」「最小限の振動」で判定している（p.26）。主観が入るので中信頼度。","states":[{"id":"stiff","label":"硬い（押しても型崩れしない）","short":"硬い"},{"id":"intermediate","label":"やや硬い","short":"やや硬い"},{"id":"soft","label":"柔らかい（軽く振ると揺れる）","short":"柔らかい"}]},{"id":"c03","label":"皮層（cortex）の型","labelEn":"Cortex type","level":1,"type":"cat","multi":true,"reliability":"med","eliminates":false,"variable":"種内で変動する（天候依存・同一着合子嚢体で混在）","question":"皮層の見え方はどれに当たりますか（同一着合子嚢体で複数見られる場合は複数選択）。","note":"皮層は天候で変動し、同一着合子嚢体上で複数型が混在しうる（p.26）。ただし lucidula の診断では「膜状・半透明」が splendens との差として使われている（p.22）。銀色でも splendens・lycoperdon とは限らない。tasmanica には硬化した変形体物質による銀色の皮層もある（p.26）。","states":[{"id":"evanescent_matt","label":"早落性・鈍い膜（すぐ消える）","short":"早落性"},{"id":"membranous_shiny","label":"膜状・光沢・半透明","short":"膜状光沢"},{"id":"thick_silvery","label":"厚く不透明・銀色光沢","short":"厚銀色"},{"id":"silvery_absent","label":"銀色を欠く","short":"銀色なし"},{"id":"sclerified","label":"硬化している（暗紫・灰・銀色）","short":"硬化"}]},{"id":"c04","label":"変形膜（hypothallus）","labelEn":"Hypothallus","level":1,"type":"cat","reliability":"low","eliminates":false,"question":"着合子嚢体の基部に、目立つ変形膜がありますか。","note":"記載があるのは2新種のみ。lucidula は「目立たない」（p.23）、tasmanica は「目立つ場合は白い輪」（p.26）なので、tasmanica にも目立たない個体がありうる。判別力は乏しい。","states":[{"id":"inconspicuous","label":"目立たない","short":"目立たない"},{"id":"white_ring","label":"白い輪として目立つ","short":"白い輪"}]},{"id":"c05","label":"未熟時の色","labelEn":"Colour when immature","level":1,"type":"cat","reliability":"low","eliminates":false,"question":"未熟な着合子嚢体の色は。","note":"tasmanica のみ記載（淡い肉桃色 → 暗灰褐）。lucidula は未観察。","states":[{"id":"flesh_pink","label":"淡い肉桃色","short":"肉桃色"},{"id":"other","label":"それ以外","short":"その他"}]},{"id":"c06","label":"皮層の透過性","labelEn":"Cortex translucency","level":2,"type":"ord","ordinal":true,"reliability":"med","eliminates":false,"variable":"皮層に連動して変わる","question":"透過光で見た皮層の透過性は。","note":"lucidula は「半透明・黄褐」（p.23）、tasmanica は「ほぼ無色（hyaline）」（p.26）、splendens は「厚く不透明」（p.26）。","states":[{"id":"opaque","label":"不透明","short":"不透明"},{"id":"semi","label":"半透明","short":"半透明"},{"id":"hyaline","label":"ほぼ無色（hyaline）","short":"無色"}]},{"id":"c07","label":"擬細毛体（pseudocapillitium）の構造","labelEn":"Pseudocapillitium architecture","level":2,"type":"cat","reliability":"high","eliminates":true,"question":"実体顕微鏡下で、内部の骨格はどう見えますか。","note":"本属の主要な判別形質（p.26）。ただし lucidula は記載文で「やや剛い糸」、議論で「柔軟な糸」と揺れているので、lucidula のセルは係争中（？）として除外には使わない（係争点 k1）。","states":[{"id":"dichotomous_thick","label":"太い糸が二分岐","short":"太い二分岐"},{"id":"rigid_plates","label":"密で剛い板の迷路","short":"剛い板"},{"id":"net_rigid_thin","label":"細くやや剛い糸の3次元網","short":"細い剛い網"},{"id":"net_lax","label":"緩く柔軟な糸の3次元網","short":"緩い柔軟な網"}]},{"id":"c08","label":"擬細毛体の糸の細部","labelEn":"Strand features","level":2,"type":"cat","multi":true,"reliability":"med","eliminates":false,"question":"透過光での糸の表面と分枝部は（複数選択可）。","note":"lucidula と tasmanica にのみ記載。平滑・膜状拡張は両者に共通で、判別力は小さい。","states":[{"id":"smooth","label":"平滑","short":"平滑"},{"id":"warty","label":"大きないぼがある","short":"いぼ"},{"id":"membranous_ext","label":"分枝点に膜状の拡張","short":"膜状拡張"},{"id":"threadlike","label":"糸状に細い","short":"糸状"}]},{"id":"c09","label":"胞子径","labelEn":"Spore diameter","level":3,"type":"num","unit":"µm","tolerance":0.3,"reliability":"med","eliminates":false,"question":"染色標本で胞子の直径を測ってください（µm）。","note":"4種すべての範囲が重複し、判別には使えない。lucidula (7–)7.5–8.5(–9)、tasmanica (6.5–)7–9(–9.5) は本文（p.23, p.26）。jurana は Table S2 の実測 6.27–9.03（mean±SD 6.95–8.23）、splendens は 6.39–9.19（mean±SD 7.63–8.45）。lycoperdon は Table S2 になく、Poulain 2011 の 6–8（＋縁1–2）と Stephenson 2003 の 8–9 が一致しないため併記している。","states":[]},{"id":"c10","label":"直径方向の網目数","labelEn":"Meshes across spore diameter","level":3,"type":"ord","ordinal":true,"reliability":"high","eliminates":true,"question":"胞子の直径を横切る網目の数を数えてください。","note":"splendens と lucidula で少なく、jurana と tasmanica で多い（p.27）。数値は lucidula 4–6、tasmanica 7–10（p.23, p.26）。","states":[{"id":"low","label":"少ない（4–6程度）","short":"少ない"},{"id":"high","label":"多い（7–10程度）","short":"多い"}]},{"id":"c11","label":"網目のない部分の装飾","labelEn":"Ornamentation of the reticulation-free area","level":3,"type":"cat","reliability":"high","eliminates":true,"question":"網目に覆われていない側の表面はどうなっていますか（メチルブルー染色・油浸）。","note":"本属で最も安定した判別形質とされる（p.26–27）。ただし2新種はそれぞれ単一地域の標本に基づくため、種内変異は未評価。jurana と splendens には本文に記載がない（「その他」は診断文からの推定で、両種の装飾が実際にどうかは未確認）。推定セルなので、jurana・splendens はこの形質では除外しない。","states":[{"id":"warts_ridges","label":"大型のいぼと隆起が複雑な模様をつくる","short":"いぼ・隆起"},{"id":"isolated_poly","label":"孤立または群生する多角形メッシュ","short":"孤立メッシュ"},{"id":"neither","label":"その他（上の2型に当たらない）","short":"その他"}]},{"id":"c12","label":"網目の占める割合","labelEn":"Coverage of reticulum","level":3,"type":"cat","reliability":"low","eliminates":false,"question":"胞子表面のうち、規則的な網目に覆われている割合は。","note":"2新種はいずれも「約半分」（p.23, p.26）。Poulain 2011 は splendens と lycoperdon を「約2/3」とする。判別への寄与は小さい。","states":[{"id":"half","label":"約半分","short":"半分"},{"id":"two_thirds","label":"約2/3","short":"2/3"},{"id":"full","label":"ほぼ全面","short":"全面"}]}],"taxa":[{"id":"lycoperdon","name":"Reticularia lycoperdon","status":"described","nSpecimens":5,"figure":null,"distribution":null,"distributionSrc":null,"note":"本論文では「大型・銀色の皮層・太く二分岐する擬細毛体の糸により野外でも確実に同定できる」と述べるのみで（p.19）、種記載は与えられていない。したがって本試作の6セルはすべて他文献（Poulain 2011、Stephenson 2003）からの候補（✎・未裁定）。","chars":{"c01":{"range":[15,100],"src":"Poulain 2011（15–60(–100) mm）／Stephenson 2003（2–8 cm）","provisional":true},"c03":{"states":["thick_silvery"],"src":"p.19／Poulain 2011／Stephenson 2003","provisional":true,"note":"p.19 は「銀色の皮層」、Poulain は「厚く丈夫、若い時は銀白・光沢、のち褐色」、Stephenson は「硬く革質、褐色、光沢」。"},"c04":{"states":["white_ring"],"src":"Poulain 2011（属の記載: 時に白い輪）／Stephenson 2003","provisional":true},"c07":{"states":["dichotomous_thick"],"src":"p.19／Poulain 2011／Stephenson 2003","provisional":true,"note":"p.19 は「太く二分岐する擬細毛体の糸」、Poulain は「基部の乳頭状の板が樹枝状の糸（1–4 µm）にほぐれる」、Stephenson は「基部から立つ板が樹枝状に分岐し、扁平で柔軟な糸になる」。"},"c09":{"ranges":[{"range":[6,8],"label":"Poulain 6–8 µm（＋縁1–2）"},{"range":[8,9],"label":"Stephenson 8–9 µm"}],"src":"Poulain 2011／Stephenson 2003","provisional":true,"note":"情報源で食い違う。実体としての変異か、隠蔽種の混在かは未評価なので、片方に寄せず両方を併記している。"},"c12":{"states":["two_thirds"],"src":"Poulain 2011／Stephenson 2003（約2/3）","provisional":true}}},{"id":"jurana","name":"Reticularia jurana","status":"described","nSpecimens":11,"figure":"Fig. 3 (p.22)","distribution":["Europe","North America","South America"],"distributionSrc":"p.27・Table S1","note":"両遺伝子で完全に均一（p.22）。ただし p.22 に「R. jurana rt3」という記述があり、これは splendens rt3 の誤記と思われる（p.27 では「R. splendens rt 3」と書かれている）。Table S1 の11標本はヨーロッパ・北米・南米で、アジアの標本はない。","chars":{"c02":{"states":["soft"],"src":"p.26"},"c03":{"states":["evanescent_matt","membranous_shiny"],"src":"p.26"},"c07":{"states":["net_lax"],"src":"p.26"},"c09":{"range":[6.3,9],"src":"Table S2 実測 6.27–9.03（mean±SD 6.95–8.23）"},"c10":{"states":["high"],"src":"p.27"},"c11":{"states":["neither"],"src":"p.26（診断文からの推定）","inferred":true}}},{"id":"splendens","name":"Reticularia splendens","status":"described","nSpecimens":15,"figure":"Fig. 4 (p.23)","distribution":["Europe","Asia","North America"],"distributionSrc":"p.27・Table S1","note":"3つのリボタイプを含み、rt3 は ASAP で独立種と判定されたが、本論文では記載されていない（p.22）。","chars":{"c02":{"states":["stiff"],"src":"p.26"},"c03":{"states":["thick_silvery","silvery_absent"],"src":"p.26"},"c06":{"states":["opaque"],"src":"p.26"},"c07":{"states":["rigid_plates"],"src":"p.26"},"c09":{"range":[6.4,9.2],"src":"Table S2 実測 6.39–9.19（mean±SD 7.63–8.45）"},"c10":{"states":["low"],"src":"p.27"},"c11":{"states":["neither"],"src":"p.22（診断文からの推定）","inferred":true}}},{"id":"lucidula","name":"Reticularia lucidula","status":"described","nSpecimens":2,"figure":"Fig. 5 (p.24)","distribution":["Asia"],"distributionSrc":"p.26","note":"R. lucidula Leontyev, J. Matsumoto, M. Kobayashi & Schnittler（MB 860707）。タイプ TNSM12857（長野県）。ホロタイプは日本産。未熟な着合子嚢体は未観察。記載文（p.23）は擬細毛体を「やや剛い糸」とするが、議論（p.26）では「柔軟な糸」としており食い違う。","chars":{"c01":{"range":[7,17],"src":"p.23"},"c02":{"states":["intermediate"],"src":"p.26"},"c03":{"states":["membranous_shiny"],"src":"p.23"},"c04":{"states":["inconspicuous"],"src":"p.23"},"c06":{"states":["semi"],"src":"p.23"},"c07":{"states":["net_rigid_thin"],"src":"p.23","contested":"k1"},"c08":{"states":["smooth","warty","membranous_ext"],"src":"p.23"},"c09":{"range":[7,9],"src":"p.23（本文）／Table S2 実測 7.00–8.62"},"c10":{"states":["low"],"src":"p.23"},"c11":{"states":["warts_ridges"],"src":"p.19, p.23"},"c12":{"states":["half"],"src":"p.23"}}},{"id":"tasmanica","name":"Reticularia tasmanica","status":"described","nSpecimens":12,"figure":"Fig. 6 (p.25)","distribution":["Australia"],"distributionSrc":"p.26","note":"R. tasmanica Leontyev, S.J. Lloyd & Schnittler（MB 860708）。タイプ MEL2533241（タスマニア）。皮層は同一着合子嚢体上で複数型が混在しうる。密で軟骨質の皮層は Siphoptychium の子嚢壁を思わせる（p.26）。","chars":{"c01":{"range":[7,43],"src":"p.26"},"c02":{"states":["soft"],"src":"p.26"},"c03":{"states":["evanescent_matt","membranous_shiny","sclerified"],"src":"p.26"},"c04":{"states":["inconspicuous","white_ring"],"src":"p.26","note":"「Hypothallus, if conspicuous, forming a white ring」。目立たない個体もありうる。"},"c05":{"states":["flesh_pink"],"src":"p.26"},"c06":{"states":["hyaline"],"src":"p.26"},"c07":{"states":["net_lax"],"src":"p.26"},"c08":{"states":["smooth","threadlike","membranous_ext"],"src":"p.26"},"c09":{"range":[6.5,9.5],"src":"p.26（本文）／Table S2 実測 6.74–9.21"},"c10":{"states":["high"],"src":"p.26"},"c11":{"states":["isolated_poly"],"src":"p.26"},"c12":{"states":["half"],"src":"p.26"}}}],"shadowTaxa":[{"id":"reticularia_sp","label":"Reticularia sp.（英国・オランダ・カレリア）","appliesTo":["jurana","splendens"],"knownRegions":["Europe"],"regionNote":"ヨーロッパ（英国・オランダ・カレリア。Table S1 の3標本）","note":"nucSSU のみ・形態観察は1標本のみのため、本論文では記載を見送られている（p.22, p.27）。Table S1 の3標本（AMFD290 英国、sc5797 ロシア、JH2310 オランダ）。胞子径は Table S2 の1標本で 7.28–8.85 µm（mean 8.01）と、4既知種と重複する。形態だけでは除外できない。"},{"id":"splendens_rt3","label":"Reticularia splendens rt3","appliesTo":["jurana","splendens"],"knownRegions":["Asia"],"regionNote":"日本（TNSM13048。Table S1 の1標本）","note":"ASAP で独立種と判定されたが記載されていない（p.22）。R. jurana rt3 という記述（p.22）は本種の誤記と思われる（p.27 では「R. splendens rt 3」）。日本産の1標本（TNSM13048）のみ。Table S2 では胞子径 7.71–10.04 µm（mean 8.31）で、10 µm を超えるのは既知4種にない。"}],"conflicts":[{"id":"k1","title":"lucidula の擬細毛体が「剛い」か「柔軟」か","body":"種記載（p.23）は「thin, relatively rigid strands（細くやや剛い糸）」、議論（p.26）は「the pseudocapillitium is formed by flexible strands（柔軟な糸）」としている。本試作は記載文の状態を入れたうえで、このセルを係争中（？）とし、観察と食い違っても lucidula を除外しない。"},{"id":"k2","title":"jurana・splendens の「網目以外の装飾」は推定","body":"両種の装飾型は本文に明記がない。lucidula の診断（p.22）「splendens とは網目のない部分の大型のいぼ・隆起で異なる」と、tasmanica の診断（p.26）「jurana とは孤立多角形メッシュで異なる」から「その他」と推定した。原記載・タイプ標本での確認が必要。"},{"id":"k3","title":"lycoperdon の胞子径は Table S2 にない","body":"jurana・splendens は Table S2 から補った（v0.2.0）。lycoperdon は Table S2 に列がないため、Poulain 2011 と Stephenson 2003 の値を候補（✎）として併記している（k9 を参照）。"},{"id":"k4","title":"「R. jurana rt3」は誤記と思われる","body":"p.22 に「Similarly, R. jurana rt3 is not described here as a separate taxon」とあるが、同じ p.22 で jurana は両遺伝子で完全に均一とされ、rt3 は splendens の3リボタイプの一つとされている。さらに p.27 では「R. splendens rt 3, which may represent a separate species」と書かれている。splendens rt3 の誤記と判断した。"},{"id":"k5","title":"検体数の内訳は Table S1 で説明できる（本文の記述が不完全）","body":"Table S1 は48行。配列は nucSSU 45・mtSSU 28（両方26、nucSSUのみ19、mtSSUのみ2、配列なし1）。配列なしの1件は UARK11333（R. splendens、米国）。つまり 48 = 42（配列あり・直接調査）＋5（配列のみ）＋1（直接調査・配列なし）で、本文の「42＋5」はこの1件を書き落としている。データ自体は矛盾していない。"},{"id":"k6","title":"lycoperdon の分布が本文にない","body":"本論文には lycoperdon の産地記載がないため、分布による警告の対象外としている。Table S1 には5標本があるが、分布の論議には使っていない。"},{"id":"k7","title":"jurana は分子で均一だが、胞子径は標本間で振れる","body":"jurana は nucSSU・mtSSU の両方で完全に均一とされる（p.22）。一方 Table S2 では、標本ごとの胞子径平均が 6.98–8.36 µm と 1.4 µm の幅がある（7標本。うち CWP3419 は配列なしで Table S1 にも載っていない）。種内の形態変異をどう扱うかは、分子と形態の対応を議論する際の検討課題。"},{"id":"k9","title":"lycoperdon の記載が情報源で揺れる（候補セルの根拠）","body":"胞子径は Poulain 2011 が 6–8 µm（縁を入れて +1–2）、Stephenson 2003 が 8–9 µm で一致しない。擬細毛体は本論文（p.19）が「太い二分岐糸」、Poulain と Stephenson は「基部から立つ板が樹枝状にほぐれ、扁平で柔軟な糸になる」と書く。網目の割合は両者が約2/3とするが、本論文の2新種は約半分。lycoperdon のセルは provisional（未裁定）として入れてある。"},{"id":"k8","title":"ASAP の群数が本文の数え方と1つずれる（Table 5 で説明できる）","body":"Suppl 5 の最良分割（スコア 1.5）は、Reticularia について nucSSU 7群・mtSSU 6群。本文は「nucSSU 6・mtSSU 5」と述べる（p.21）。splendens rt3 を splendens に含めて数えれば本文と一致するので、本文は rt3 を独立種と書きながら群数には含めていない、という整理になる。データ側の矛盾ではない。"}],"charSources":{"c01":"p.23, p.26","c02":"p.26","c03":"p.23, p.26","c04":"p.23, p.26","c05":"p.26","c06":"p.23, p.26","c07":"p.19, p.23, p.26","c08":"p.23, p.26","c09":"p.23, p.26","c10":"p.23, p.26, p.27","c11":"p.19, p.23, p.26–27","c12":"p.23, p.26"},"figures":{"jurana":{"file":"fig3","label":"Fig. 3","page":"p.22","taxon":"Reticularia jurana","type":"タイプではない比較標本"},"splendens":{"file":"fig4","label":"Fig. 4","page":"p.23","taxon":"Reticularia splendens","type":""},"lucidula":{"file":"fig5","label":"Fig. 5","page":"p.24","taxon":"Reticularia lucidula","type":"TNSM12857（ホロタイプ）"},"tasmanica":{"file":"fig6","label":"Fig. 6","page":"p.25","taxon":"Reticularia tasmanica","type":"SJL818（ホロタイプ）"}},"figureOrder":["jurana","splendens","lucidula","tasmanica"],"gallerySections":[{"id":"spore","title":"胞子（メチルブルー染色・油浸）","row":5,"panels":"M","charIds":["c10","c11","c12"],"note":"右端の1個は光学断面。網目の数を数えるときは、直径を横切る網目の数（c10）と、網目に覆われていない側の装飾（c11）を別々に見る。4種を並べても違いは微妙なので、判断には実際の標本と倍率の一致が要る。"},{"id":"pseudo","title":"擬細毛体（実体顕微鏡）","row":3,"panels":"G–I","charIds":["c07","c08"],"note":"剛い板の迷路（splendens）か、緩い糸の三次元網（jurana・tasmanica）か、細くやや剛い糸（lucidula）か。標本を軽く振ったときの揺れ方と合わせて判断する。"},{"id":"cortex","title":"皮層の表面","row":2,"panels":"D–F","charIds":["c03"],"note":"光沢・半透明・硬化などの状態は同一種でも変わる（tasmanica は同一着合子嚢体で混在）。単独では決め手にならない。"},{"id":"aethalium","title":"着合子嚢体の外形","row":1,"panels":"A–C","charIds":["c01","c02","c04"],"note":"大きさと形。Fig. 6A は未熟（淡い肉桃色は tasmanica の特徴）。スケールバーは各図の脚注を参照。"},{"id":"transmitted","title":"透過光での皮層・擬細毛体","row":4,"panels":"J–L","charIds":["c06","c08"],"note":"皮層の透過性（不透明／半透明／ほぼ無色）と、糸の太さ・分枝点の膜状拡張を見る。"}],"panelText":{"jurana":{"A":"成熟した着合子嚢体","B":"成熟した着合子嚢体","C":"成熟した着合子嚢体","D":"成熟した着合子嚢体","E":"皮層の表面","F":"皮層の表面","G":"擬細毛体","H":"擬細毛体","I":"擬細毛体","J":"皮層（透過光）","K":"擬細毛体（透過光）","L":"擬細毛体（透過光）","M":"胞子（メチルブルー染色・右端は光学断面）"},"splendens":{"A":"成熟した着合子嚢体","B":"成熟した着合子嚢体","C":"成熟した着合子嚢体","D":"皮層の表面","E":"皮層の表面","F":"皮層の表面","G":"擬細毛体","H":"擬細毛体","I":"擬細毛体","J":"皮層（透過光）","K":"擬細毛体（透過光）","L":"擬細毛体（透過光）","M":"胞子（メチルブルー染色・右端は光学断面）"},"lucidula":{"A":"成熟した着合子嚢体","B":"成熟した着合子嚢体","C":"皮層の表面","D":"皮層の表面","E":"皮層の表面","F":"皮層の表面","G":"擬細毛体","H":"擬細毛体","I":"擬細毛体","J":"皮層（透過光）","K":"擬細毛体（透過光）","L":"擬細毛体（透過光）","M":"胞子（メチルブルー染色・右端は光学断面）"},"tasmanica":{"A":"未熟な着合子嚢体","B":"成熟した着合子嚢体","C":"成熟した着合子嚢体","D":"皮層の表面","E":"皮層の表面","F":"皮層の表面","G":"擬細毛体","H":"擬細毛体","I":"擬細毛体","J":"皮層（透過光）","K":"擬細毛体（透過光）","L":"擬細毛体（透過光）","M":"胞子（メチルブルー染色・右端は光学断面）"}},"panelOrder":["A","B","C","D","E","F","G","H","I","J","K","L","M"],"stateAnchors":[{"charId":"c03","stateId":"evanescent_matt","items":[{"taxonId":"jurana","fig":"fig3","panels":["B","F"],"src":"p.26","quote":"fugacious cortex, appearing as a faint, matt membrane before disappearing (Fig. 3B, F)"},{"taxonId":"tasmanica","fig":"fig6","panels":["B"],"src":"p.26","quote":"matt and in this case very similar to that of R. jurana (Fig. 6B)"}]},{"charId":"c03","stateId":"membranous_shiny","items":[{"taxonId":"jurana","fig":"fig3","panels":["D","E"],"src":"p.26","quote":"denser, shiny, partially persistent cortex (Fig. 3D, E)"},{"taxonId":"lucidula","fig":"fig5","panels":["D","E","F"],"src":"p.23","quote":"membranous, shiny, translucent, yellow-brown under transmitted light … (Fig. 5D–F, J)"},{"taxonId":"tasmanica","fig":"fig6","panels":["E","F"],"src":"p.26","quote":"shiny and more stable (Fig. 6E, F)"}]},{"charId":"c03","stateId":"thick_silvery","items":[{"taxonId":"splendens","fig":"fig4","panels":["A"],"src":"p.26","quote":"thick and non-translucent, often silvery and glossy (Fig. 4A)"}]},{"charId":"c03","stateId":"silvery_absent","items":[{"taxonId":"splendens","fig":"fig4","panels":["C","F"],"src":"p.26","quote":"in some cases the silvery coat is totally absent (Fig. 4C, F)"}]},{"charId":"c03","stateId":"sclerified","items":[{"taxonId":"tasmanica","fig":"fig6","panels":["D"],"src":"p.26","quote":"If partially sclerified, the cortex becomes durable, dark purple (Fig. 6D)"},{"taxonId":"tasmanica","fig":"fig6","panels":["C"],"src":"p.26","quote":"or greyish (Fig. 6C)"},{"taxonId":"tasmanica","fig":"fig6","panels":["D"],"src":"p.26","quote":"some specimens of R. tasmanica show a silvery cortex apparently formed from sclerified plasmodial material (Fig. 6D)"}]},{"charId":"c05","stateId":"flesh_pink","items":[{"taxonId":"tasmanica","fig":"fig6","panels":["A"],"src":"p.26","quote":"Immature fructifications light flesh pinkish (Fig. 6A)"}]},{"charId":"c06","stateId":"semi","items":[{"taxonId":"lucidula","fig":"fig5","panels":["J"],"src":"p.23","quote":"translucent, yellow-brown under transmitted light (Fig. 5D–F, J)"}]},{"charId":"c06","stateId":"hyaline","items":[{"taxonId":"tasmanica","fig":"fig6","panels":["J"],"src":"p.26","quote":"translucent, almost hyaline under transmitted light (Fig. 6D–F, J)"}]},{"charId":"c07","stateId":"rigid_plates","items":[{"taxonId":"splendens","fig":"fig4","panels":["G","H","I"],"src":"p.26","quote":"dense and forms a rigid labyrinth of plates (Fig. 4G–I)"}]},{"charId":"c07","stateId":"net_lax","items":[{"taxonId":"jurana","fig":"fig3","panels":["G","H","I"],"src":"p.26","quote":"lax, flexible strands, forming a three-dimensional net (Figs 3G–I, 6G–I)"},{"taxonId":"tasmanica","fig":"fig6","panels":["G","H","I"],"src":"p.26","quote":"three-dimensional net of very thin and lax strands (Fig. 6G–I)"}]},{"charId":"c07","stateId":"net_rigid_thin","items":[{"taxonId":"lucidula","fig":"fig5","panels":["G","H","I"],"src":"p.23","quote":"three-dimensional net of thin, relatively rigid strands (Fig. 5G–I)","note":"同じ論文の議論（p.26）では「柔軟な糸」と書かれており、記述が揺れている。"}]},{"charId":"c07","stateId":"dichotomous_thick","items":[{"taxonId":"lycoperdon","fig":null,"panels":[],"src":"p.19","quote":"wide, dichotomously branched pseudocapillitial threads","missing":true,"note":"本論文に lycoperdon の図版はない。"}]},{"charId":"c08","stateId":"membranous_ext","items":[{"taxonId":"lucidula","fig":"fig5","panels":["K","L"],"src":"p.23","quote":"membranous extensions at the branching points (Fig. 5K, L)"},{"taxonId":"tasmanica","fig":"fig6","panels":["K","L"],"src":"p.26","quote":"may form membranous extensions at branching points (Fig. 6K, L)"}]},{"charId":"c08","stateId":"warty","items":[{"taxonId":"lucidula","fig":"fig5","panels":["K","L"],"src":"p.23","quote":"occasionally ornamented with large warts (Fig. 5K, L)"}]},{"charId":"c10","stateId":"low","items":[{"taxonId":"lucidula","fig":"fig5","panels":["M"],"src":"p.23","quote":"regular reticulum with 4–6 meshes across the diameter (Fig. 5M)"}]},{"charId":"c10","stateId":"high","items":[{"taxonId":"tasmanica","fig":"fig6","panels":["M"],"src":"p.26","quote":"regular reticulum with 7–10 meshes across the diameter (Fig. 6M)"}]},{"charId":"c11","stateId":"warts_ridges","items":[{"taxonId":"lucidula","fig":"fig5","panels":["M"],"src":"p.23","quote":"the other half is free of reticulation and ornamented with large warts and ridges forming an intricate pattern (Fig. 5M)"}]},{"charId":"c11","stateId":"isolated_poly","items":[{"taxonId":"tasmanica","fig":"fig6","panels":["M"],"src":"p.26","quote":"ornamented with isolated, solitary or grouped polygonal meshes (Fig. 6M)"}]},{"charId":"c11","stateId":"neither","items":[{"taxonId":"jurana","fig":"fig3","panels":["M"],"src":"p.26（診断文からの推定）","quote":"","inferred":true,"note":"本文には記載なし。tasmanica の診断文との対比からの推定で、図からの判断ではない。"},{"taxonId":"splendens","fig":"fig4","panels":["M"],"src":"p.22（診断文からの推定）","quote":"","inferred":true,"note":"本文には記載なし。lucidula の診断文との対比からの推定で、図からの判断ではない。"}]},{"charId":"c12","stateId":"half","items":[{"taxonId":"lucidula","fig":"fig5","panels":["M"],"src":"p.23","quote":"Around half of the spore surface is covered by a regular reticulum (Fig. 5M)"},{"taxonId":"tasmanica","fig":"fig6","panels":["M"],"src":"p.26","quote":"Around half of the spore surface is covered by regular reticulum (Fig. 6M)"}]}],"panelScale":{"jurana":{"A":"5 mm","B":"5 mm","C":"5 mm","D":"1 mm","E":"1 mm","F":"1 mm","G":"100 μm","H":"100 μm","I":"100 μm","J":"100 μm","K":"50 μm","L":"10 μm","M":"2 μm"},"splendens":{"A":"5 mm","B":"1 mm","C":"1 mm","D":"200 μm","E":"200 μm","F":"200 μm","G":"100 μm","H":"100 μm","I":"100 μm","J":"100 μm","K":"100 μm","L":"100 μm","M":"2 μm"},"lucidula":{"A":"1 mm","B":"1 mm","C":"200 μm","D":"200 μm","E":"200 μm","F":"200 μm","G":"200 μm","H":"200 μm","I":"100 μm","J":"100 μm","K":"50 μm","L":"20 μm","M":"2 μm"},"tasmanica":{"A":"5 mm","B":"5 mm","C":"1 mm","D":"500 μm","E":"500 μm","F":"200 μm","G":"500 μm","H":"500 μm","I":"100 μm","J":"100 μm","K":"100 μm","L":"20 μm","M":"2 μm"}},"figureCaptions":{"jurana":"Reticularia jurana [A. CWP-R0009. B, F. MSK-F43363. C, H, I. UARK22158. D, E. sc32530. G, J, L. MSK-F43245. K. CWP5114. M. CWP5114 (left half), MSK-F43254 (right half)]. A–D. Mature aethalia. E, F. Outer surface of the cortex. G–I. Pseudocapillitium. J. Cortex in transmitted light. K, L. Pseudocapillitium in transmitted light. M. Spores stained by methyl blue; the last picture shows optical section. Scale bars: A–C = 5 mm; D–F = 1 mm; G–J = 100 μm; K = 50 μm; L = 10 μm; M = 2 μm. Photo authorship: A, C–E, G–M: D. Leontyev; B, F: E. Moroz.","splendens":"Reticularia splendens [A. CWU-R0061. B, G. TNSM11758. C, D, H, J. TNSM13345. E. TNSM12919. F. TNSM12856. I. UARK20735. K. sc11333. L. sc11333. M. sc11336 (left half), TNSM11758 (right half)]. A–C. Mature aethalia. D–F. Outer surface of the cortex. G–I. Pseudocapillitium. J. Cortex in transmitted light. K, L. Pseudocapillitium in transmitted light. M. Spores stained by methyl blue; the last picture shows optical section. Scale bars: A = 5 mm; B, C = 1 mm; D–F = 200 μm; G–L = 100 μm; M = 2 μm. Photo authorship: D. Leontyev.","lucidula":"Reticularia lucidula sp. nov. [A–E, F, G, H, K. TNSM12857 (holotype). F, I, J, L, M. TNSM13338]. A, B. Mature aethalia. C–F. Outer surface of the cortex. G–I. Pseudocapillitium. J. Cortex in transmitted light. K, L. Pseudocapillitium in transmitted light. M. Spores stained by methyl blue; the last picture shows optical section. Scale bars: A, B = 1 mm; C–H = 200 μm; I, J = 100 μm; K = 50 μm; L = 20 μm; M = 2 μm. Photo authorship: D. Leontyev.","tasmanica":"Reticularia tasmanica sp. nov. [A, C. Not collected. B. SJL2451. D, L. SJL1783. E, M (left half). SJL818 (holotype). F, G. SJL1632. H. SJL2236. I. SJL832. J. SJL2133. K. SJL244. M (right half). SJL1632]. A. Immature aethalium. B, C. Mature aethalia. D–F. Outer surface of the cortex. G–I. Pseudocapillitium. J. Cortex in transmitted light. K, L. Pseudocapillitium in transmitted light. M. Spores stained by methyl blue; the last picture shows optical section. Scale bars: A, B = 5 mm; C = 1 mm; D, E, G, H = 500 μm; F = 200 μm; I–K = 100 μm; L = 20 μm; M = 2 μm. Photo authorship: A–C: S.J. Lloyd; D–M: D. Leontyev."},"claims":{"lead":"この論文の主張を、形質行列から計算できる形で示します。文章ではなく数字と図で出しているので、行列を直せばここも自動で変わります。","items":[{"id":"two-chars","title":"4種は実質2形質で分かれる","body":"「直径方向の網目数」と「網目のない部分の装飾」の組み合わせで、jurana・splendens・lucidula・tasmanica が重複なく配置される。擬細毛体でも10ペア中9ペアは分かれるが、jurana と tasmanica は同じ「緩い糸の網」で残ってしまう。その最後の2種を分けるのがこの2形質。 ただし、lucidula と splendens、tasmanica と jurana を分けているのは「網目のない部分の装飾」だけで、jurana・splendens 側のセルは診断文からの推定（◐）。2新種はそれぞれ単一地域の標本に基づき、装飾の種内変異は未評価（p.27）。","visual":"grid"},{"id":"cortex","title":"皮層は「使えるように見えて使えない」","body":"記載上は、皮層だけで10ペア中6ペアを区別できる（棒は高い）。ところが tasmanica は同一着合子嚢体上で複数型が混在し、jurana も複数型を持つ。天候で変わるため（p.26）、高い棒のとおりには使えない。棒の高さと信頼度は別物、というのがこの論文の要点。","visual":"discrimination"},{"id":"cryptic","title":"隠蔽種には分子が要る","body":"形態で分かれた4種のほかに、形態未記載の分子系統が2つある（Reticularia sp. と splendens rt3）。ASAP は独立種と判定したが、記載は見送られた。だから形態の検索表は「ここまで」を正直に示す必要がある。","visual":"cryptic"},{"id":"coverage","title":"記載は種ごとに大きく偏っている","body":"完全な種記載があるのは lucidula と tasmanica の2種だけ。jurana・splendens は比較記述から、lycoperdon は他文献から補っている。だから空欄は「形質がない」ではなく「記載がない」として扱う。","visual":"coverage"}]},"galleryAttribution":"写真: D. Leontyev（Fig. 3 の A, C–E, G–M、Fig. 4、Fig. 5、Fig. 6 の D–M）、E. Moroz（Fig. 3 の B, F）、S.J. Lloyd（Fig. 6 の A–C）。Leontyev et al. 2026, Fungal Systematics and Evolution 17: 19–29。ライセンス CC BY 4.0。","tests":[{"id":"t1","title":"lucidula のタイプ記載プロファイル","obs":{"c02":["intermediate"],"c03":["membranous_shiny"],"c04":["inconspicuous"],"c06":["semi"],"c07":["net_rigid_thin"],"c08":["smooth","warty","membranous_ext"],"c09":8,"c10":["low"],"c11":["warts_ridges"],"c12":["half"],"region":"Asia"},"expect":{"exact":["lucidula"]}},{"id":"t2","title":"tasmanica のタイプ記載プロファイル（鈍い皮層の型）。jurana とは推定セルでしか分けられないので、jurana も警告付きで残る","obs":{"c02":["soft"],"c03":["evanescent_matt"],"c04":["white_ring"],"c05":["flesh_pink"],"c06":["hyaline"],"c07":["net_lax"],"c09":8,"c10":["high"],"c11":["isolated_poly"],"region":"Australia"},"expect":{"exact":["tasmanica","jurana"],"first":"tasmanica","uncertainFor":["jurana"],"shadow":true}},{"id":"t3","title":"splendens の比較記述プロファイル","obs":{"c02":["stiff"],"c03":["thick_silvery"],"c07":["rigid_plates"],"c10":["low"],"c11":["neither"],"region":"Europe"},"expect":{"exact":["splendens"]}},{"id":"t4","title":"jurana の比較記述プロファイル","obs":{"c02":["soft"],"c07":["net_lax"],"c09":8.2,"c10":["high"],"c11":["neither"],"region":"Europe"},"expect":{"exact":["jurana"],"shadow":true}},{"id":"t5","title":"既知の組み合わせにない観察（網目少ない＋孤立メッシュ）","obs":{"c02":["soft"],"c07":["net_lax"],"c10":["low"],"c11":["isolated_poly"]},"expect":{"empty":true}},{"id":"t6","title":"硬さだけ観察した段階","obs":{"c02":["soft"]},"expect":{"top2":["jurana","tasmanica"],"nextOneOf":["c07","c10","c11"]}},{"id":"t7","title":"未観察（初期状態）","obs":{},"expect":{"survivorCount":5,"nextOneOf":["c02","c07","c10","c11"]}},{"id":"t8","title":"lucidula で擬細毛体を「柔軟な糸」と見た場合（議論 p.26 の記述）。係争中セルなので除外しない","obs":{"c07":["net_lax"],"c10":["low"],"c11":["warts_ridges"],"region":"Asia"},"expect":{"exact":["lucidula"],"uncertainFor":["lucidula"]}},{"id":"t9","title":"日本産の splendens プロファイル。rt3 の警告に「既知の産地と一致」が付く","obs":{"c02":["stiff"],"c03":["thick_silvery"],"c07":["rigid_plates"],"c10":["low"],"c11":["neither"],"region":"Asia"},"expect":{"exact":["splendens"],"shadow":true,"shadowRegionMatch":["splendens_rt3"]}}],"seqRefs":{"nucSSU":[{"id":"Reticularia_splendens_rt1_CWU-R0061","marker":"nucSSU","genus":"Reticularia","species":"splendens","ribotype":"rt1","specimen":"CWU-R0061","outgroup":false,"length":653,"seq":"AAGACTAAGCCATGCATGCTAGGAAACCCTCCGGCCCCCCGGCTGTTCACGGCCGAGGGGCCTCAGGAAATCTGCGAACGGCTCCGTACAACTGTTATAAGCCTACCGTGGGGTGAAGAACGGATAAGCGGCGGTAAACCTGCACCTAAAACGTAAATTCCCCACGGGAGAGCTTTCTCTCCCGGGGGGACCTGCTCTACAGTAAGCTACAGCTTGGCGGCGTAGCGAACACGAGGGACTCCAGCCATCCAGCACCGCAGCCCGGGTAGACCCCCTCGCGGGTCTTCCCTACGTCCGCCCGGGGCATCTGCCCTGGGCGGGCAGCTGCCCAGCGGGGAAACGGCTGGAGCATCACCAAAGGTAATGTAAGGCGCCTAGGCGCAGACCGCAGGGCACGATGGGTTTCAGGCCTATCAGCTTGCTGGTAGGGTATTGGCCTACCAGGGCTGCTACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCCGAGAAATTGCCACCACTGCTACGGCAGGCAGCAGGCGCGCAACGTTCCCAATGTTTTAACATGAGGACGTGAAGGGGCGTAACAACGCCTCGCCTATGGCGAGGCGATTGAAATGGGGCGGGCTTAAACAACCCGCCGAGTAGCAATTGGAGGACAAGTC"},{"id":"Reticularia_splendens_rt1_CWU-R0092","marker":"nucSSU","genus":"Reticularia","species":"splendens","ribotype":"rt1","specimen":"CWU-R0092","outgroup":false,"length":650,"seq":"AAGACTAAGCCATGCATGCTAGGAAACCCTCCGGCCCCCCGGCTGTTCACGGCCGAGGGGCCTCAGGAAATCTGCGAACGGCTCCGTACAACTGTTATAAGCCTACCGTGGGGTGAAGAACGGATAAGCGGCGGTAAACCTGCACCTAAAACGTAAATTCCCCACGGGAGAGCTTTCTCTCCCGGGGGGACCTGCTCTACAGTAAGCTACAGCTTGGCGGCGTAGCGAACACGAGGGACTCCAGCCATCCAGCACCGCAGCCCGGGTAGACCCCCTCGCGGGTCTTCCCTACGTCCGCCCGGGGCATCTGCCCTGGGCGGGCAGCTGCCCAGCGGGGAAACGGCTGGAGCATCACCAAAGGTAATGTAAGGCGCCTAGGCGCAGACCGCAGGGCACGATGGGTTTCAGGCCTATCAGCTTGCTGGTAGGGTATTGGCCTACCAGGGCTGCTACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCCGAGAAATTGCCACCACTGCTACGGCAGGCAGCAGGCGCGCAACGTTCCCAATGTTTTAACATGAGGACGTGAAGGGGCGTAACAACGCCTCGCCTATGGCGAGGCGATTGAAATGGGGCGGGCTTAAACAACCCGCCGAGTAGCAATTGGAGGACAA"},{"id":"Reticularia_splendens_rt1_CWU-R0153","marker":"nucSSU","genus":"Reticularia","species":"splendens","ribotype":"rt1","specimen":"CWU-R0153","outgroup":false,"length":653,"seq":"AAGACTAAGCCATGCATGCTAGGAAACCCTCCGGCCCCCCGGCTGTTCACGGCCGAGGGGCCTCAGGAAATCTGCGAACGGCTCCGTACAACTGTTATAAGCCTACCGTGGGGTGAAGAACGGATAAGCGGCGGTAAACCTGCACCTAAAACGTAAATTCCCCACGGGAGAGCTTTCTCTCCCGGGGGGACCTGCTCTACAGTAAGCTACAGCTTGGCGGCGTAGCGAACACGAGGGACTCCAGCCATCCAGCACCGCAGCCCGGGTAGACCCCCTCGCGGGTCTTCCCTACGTCCGCCCGGGGCATCTGCCCTGGGCGGGCAGCTGCCCAGCGGGGAAACGGCTGGAGCATCACCAAAGGTAATGTAAGGCGCCTAGGCGCAGACCGCAGGGCACGATGGGTTTCAGGCCTATCAGCTTGCTGGTAGGGTATTGGCCTACCAGGGCTGCTACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCCGAGAAATTGCCACCACTGCTACGGCAGGCAGCAGGCGCGCAACGTTCCCAATGTTTTAACATGAGGACGTGAAGGGGCGTAACAACGCCTCGCCTATGGCGAGGCGATTGAAATGGGGCGGGCTTAAACAACCCGCCGAGTAGCAATTGGAGGACAAGTC"},{"id":"Reticularia_splendens_rt1_LE259254","marker":"nucSSU","genus":"Reticularia","species":"splendens","ribotype":"rt1","specimen":"LE259254","outgroup":false,"length":654,"seq":"AAGACTAAGCCATGCATGCTAGGAAACCCTCCGGCCCCCCGGCTGTTCACGGCCGAGGGGCCTCAGGAAATCTGCGAACGGCTCCGTACAACTGTTATAAGCCTACCGTGGGGTGAAGAACGGATAAGCGGCGGTAAACCTGCACCTAAAACGTAAATTCCCCACGGGAGAGCTTTCTCTCCCGGGGGGACCTGCTCTACAGTAAGCTACAGCTTGGCGGCGTAGCGAACACGAGGGACTCCAGCCATCCAGCACCGCAGCCCGGGTAGACCCCCTCGCGGGTCTTCCCTACGTCCGCCCGGGGCATCTGCCCTGGGCGGGCAGCTGCCCAGCGGGGAAACGGCTGGAGCATCACCAAAGGTAATGTAAGGCGCCTAGGCGCAGACCGCAGGGCACGATGGGTTTCAGGCCTATCAGCTTGCTGGTAGGGTATTGGCCTACCAGGGCTGCTACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCCGAGAAATTGCCACCACTGCTACGGCAGGCAGCAGGCGCGCAACGTTCCCAATGTTTTAACATGAGGACGTGAAGGGGCGTAACAACGCCTCGCCTATGGCGAGGCGATTGAAATGGGGCGGGCTTAAACAACCCGCCGAGTAGCAATTGGAGGACAAGTCT"},{"id":"Reticularia_splendens_rt1_UARK11336","marker":"nucSSU","genus":"Reticularia","species":"splendens","ribotype":"rt1","specimen":"UARK11336","outgroup":false,"length":654,"seq":"AAGACTAAGCCATGCATGCTAGGAAACCCTCCGGCCCCCCGGCTGTTCACGGCCGAGGGGCCTCAGGAAATCTGCGAACGGCTCCGTACAACTGTTATAAGCCTACCGTGGGGTGAAGAACGGATAAGCGGCGGTAAACCTGCACCTAAAACGTAAATTCCCCACGGGAGAGCTTTCTCTCCCGGGGGGACCTGCTCTACAGTAAGCTACAGCTTGGCGGCGTAGCGAACACGAGGGACTCCAGCCATCCAGCACCGCAGCCCGGGTAGACCCCCTCGCGGGTCTTCCCTACGTCCGCCCGGGGCATCTGCCCTGGGCGGGCAGCTGCCCAGCGGGGAAACGGCTGGAGCATCACCAAAGGTAATGTAAGGCGCCTAGGCGCAGACCGCAGGGCACGATGGGTTTCAGGCCTATCAGCTTGCTGGTAGGGTATTGGCCTACCAGGGCTGCTACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCCGAGAAATTGCCACCACTGCTACGGCAGGCAGCAGGCGCGCAACGTTCCCAATGTTTTAACATGAAGACGTGAAGGGGCGTAACAACGCCTCGCCTATGGCGAGGCGATTGAAATGGGGCGGGCTTAAACAACCCGCCGAGTAGCAATTGGAGGACAAGTCT"},{"id":"Reticularia_splendens_rt1_TNSM11758","marker":"nucSSU","genus":"Reticularia","species":"splendens","ribotype":"rt1","specimen":"TNSM11758","outgroup":false,"length":647,"seq":"CTGCCAGAATCATATGCTTGCCCCGAAGACTAAGCCATGCATGCTAGGAAACCCTCCGGCCCCCCGGCTGTTCACGGCCGAGGGGCCTCAGGAAATCTGCGAACGGCTCCGTACAACTGTTATAAGCCTACCGTGGGGTGAAGAACGGATAAGCGGCGGTAAACCTGCACCTAAAACGTAAATTCCCCACGGGAGAGCTTTCTCTCCCGGGGGGACCTGCTCTACAGTAAGCTACAGCTTGGCGGCGTAGCGAACACGAGGGACTCCAGCCATCCAGCACCGCAGCCCGGGTAGACCCCCTCGCGGGTCTTCCCTACGTCCGCCCGGGGCATCTGCCCTGGGCGGGCAGCTGCCCAGCGGGGAAACGGCTGGAGCATCACCAAAGGTAATGTAAGGCGCCTAGGCGCAGACCGCAGGGCACGATGGGTTTCAGGCCTATCAGCTTGCTGGTAGGGTATTGGCCTACCAGGGCTGCTACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCCGAGAAATTGCCACCACTGCTACGGCAGGCAGCAGGCGCGCAACGTTCCCAATGTTTTAACATGAGGACGTGAAGGGGCGTAACAACGCCTCGCCTATGGCGAGGCGATTGAAATGGGGCGGGCTTAAAC"},{"id":"Reticularia_splendens_rt1_TNSM12856","marker":"nucSSU","genus":"Reticularia","species":"splendens","ribotype":"rt1","specimen":"TNSM12856","outgroup":false,"length":638,"seq":"CTGCCAGAATCATATGCTTGCCCCGAAGACTAAGCCATGCATGCTAGGAAACCCTCCGGCCCCCCGGCTGTTCACGGCCGAGGGGCCTCAGGAAATCTGCGAACGGCTCCGTACAACTGTTATAAGCCTACCGTGGGGTGAAGAACGGATAAGCGGCGGTAAACCTGCACCTAAAACGTAAATTCCCCACGGGAGAGCTTTCTCTCCCGGGGGGACCTGCTCTACAGTAAGCTACAGCTTGGCGGCGTAGCGAACACGAGGGACTCCAGCCATCCAGCACCGCAGCCCGGGTAGACCCCCTCGCGGGTCTTCCCTACGTCCGCCCGGGGCATCTGCCCTGGGCGGGCAGCTGCCCAGCGGGGAAACGGCTGGAGCATCACCAAAGGTAATGTAAGGCGCCTAGGCGCAGACCGCAGGGCACGATGGGTTTCAGGCCTATCAGCTTGCTGGTAGGGTATTGGCCTACCAGGGCTGCTACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCCGAGAAATTGCCACCACTGCTACGGCAGGCAGCAGGCGCGCAACGTTCCCAATGTTTTAACATGAGGACGTGAAGGGGCGTAACAACGCCTCGCCTATGGCGAGGCGATTGAAATGGGGCG"},{"id":"Reticularia_splendens_rt1_TNSM12919","marker":"nucSSU","genus":"Reticularia","species":"splendens","ribotype":"rt1","specimen":"TNSM12919","outgroup":false,"length":654,"seq":"CTGCCAGAATCATATGCTTGCCCCGAAGACTAAGCCATGCATGCTAGGAAACCCTCCGGCCCCCCGGCTGTTCACGGCCGAGGGGCCTCAGGAAATCTGCGAACGGCTCCGTACAACTGTTATAAGCCTACCGTGGGGTGAAGAACGGATAAGCGGCGGTAAACCTGCACCTAAAACGTAAATTCCCCACGGGAGAGCTTTCTCTCCCGGGGGGACCTGCTCTACAGTAAGCTACAGCTTGGCGGCGTAGCGAACACGAGGGACTCCAGCCATCCAGCACCGCAGCCCGGGTAGACCCCCTCGCGGGTCTTCCCTACGTCCGCCCGGGGCATCTGCCCTGGGCGGGCAGCTGCCCAGCGGGGAAACGGCTGGAGCATCACCAAAGGTAATGTAAGGCGCCTAGGCGCAGACCGCAGGGCACGATGGGTTTCAGGCCTATCAGCTTGCTGGTAGGGTATTGGCCTACCAGGGCTGCTACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCCGAGAAATTGCCACCACTGCTACGGCAGGCAGCAGGCGCGCAACGTTCCCAATGTTTTAACATGAGGACGTGAAGGGGCGTAACAACGCCTCGCCTATGGCGAGGCGATTGAAATGGGGCGGGCTTAAACAACCCGC"},{"id":"Reticularia_splendens_rt1_TNSM13345","marker":"nucSSU","genus":"Reticularia","species":"splendens","ribotype":"rt1","specimen":"TNSM13345","outgroup":false,"length":654,"seq":"CTGCCAGAATCATATGCTTGCCCCGAAGACTAAGCCATGCATGCTAGGAAACCCTCCGGCCCCCCGGCTGTTCACGGCCGAGGGGCCTCAGGAAATCTGCGAACGGCTCCGTACAACTGTTATAAGCCTACCGTGGGGTGAAGAACGGATAAGCGGCGGTAAACCTGCACCTAAAACGTAAATTCCCCACGGGAGAGCTTTCTCTCCCGGGGGGACCTGCTCTACAGTAAGCTACAGCTTGGCGGCGTAGCGAACACGAGGGACTCCAGCCATCCAGCACCGCAGCCCGGGTAGACCCCCTCGCGGGTCTTCCCTACGTCCGCCCGGGGCATCTGCCCTGGGCGGGCAGCTGCCCAGCGGGGAAACGGCTGGAGCATCACCAAAGGTAATGTAAGGCGCCTAGGCGCAGACCGCAGGGCACGATGGGTTTCAGGCCTATCAGCTTGCTGGTAGGGTATTGGCCTACCAGGGCTGCTACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCCGAGAAATTGCCACCACTGCTACGGCAGGCAGCAGGCGCGCAACGTTCCCAATGTTTTAACATGAGGACGTGAAGGGGCGTAACAACGCCTCGCCTATGGCGAGGCGATTGAAATGGGGCGGGCTTAAACAACCCGC"},{"id":"Reticularia_splendens_rt2_UARK32464","marker":"nucSSU","genus":"Reticularia","species":"splendens","ribotype":"rt2","specimen":"UARK32464","outgroup":false,"length":626,"seq":"CTCCGGCCCCCCGGCTGTTCACGGCCGAGGGGCCTCAGGAAATCTGCGAACGGCTCCGTACAACTGTTATAAGCCTACCGTGGGGTGAAGAACGGATAAGCGGCGGTAAACCTGCACCTAAAACGTAAATTCCCCACGGGAGAGCTTTCTCTCCCGGGGGGACCTGCTCCACAGTAAGCTACAGCTTGGCGGCGTAGCGAACACGAGGGACTCCAGCCATCCAGCACCGCAGCCCGGGTCGACCCCCTCGCGGGTCTTCCCTCCGTCCGCCCGGGGCATCAGCCCTGGGCGGGCAGCTGCCCAGCGGGGAAACGGCTGGAGCATCACCAAAGGTAATGTAAGGCGCCTAGGCGCAGACCGCAGGGCACGATGGGTTTCAGGCCTATCAGCTTGCTGGTAGGGTATTGGCCTACCAGGGCTGCAACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCCGAGAAATTGCCACCACTGCTACGGCAGGCAGCAGGCGCGCAACGTTCCCAATGTTTTTACATGAGGACGTGAAGGGGCGTAACAACGCCTCGCCTACGGCGAGGCGATTGAAATGGGGCGGGCTTAAACAACCCGCCGAGTAGCAATTGGAGGACAAGTCT"},{"id":"Reticularia_splendens_rt2_UARK19279","marker":"nucSSU","genus":"Reticularia","species":"splendens","ribotype":"rt2","specimen":"UARK19279","outgroup":false,"length":552,"seq":"CTACCGTGGGGTGAAGAACGGATAAGCGGCGGTAAACCTGCACCTAAAACGTAAATTCCCCACGGGAGAGCTTTCTCTCCCGGGGGGACCTGCTCCACAGTAAGCTACAGCTTGGCGGCGTAGCGAACACGAGGGACTCCAGCCATCCAGCACCGCAGCCCGGGTCGACCCCCTCGCGGGTCTTCCCTCCGTCCGCCCGGGGCATCAGCCCTGGGCGGGCAGCTGCCCAGCGGGGAAACGGCTGGAGCATCACCAAAGGTAATGTAAGGCGCCTAGGCGCAGACCGCAGGGCACGATGGGTTTCAGGCCTATCAGCTTGCTGGTAGGGTATTGGCCTACCAGGGCTGCAACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCCGAGAAATTGCCACCACTGCTACGGCAGGCAGCAGGCGCGCAACGTTCCCAATGTTTTTACATGAGGACGTGAAGGGGCGTAACAACGCCTCGCCTACGGCGAGGCGATTGAAATGGGGCGGGCTTAAACAACCCGCCGAGTAGCAATTGGAGGACAAGTCT"},{"id":"Reticularia_splendens_rt2_UARK27104","marker":"nucSSU","genus":"Reticularia","species":"splendens","ribotype":"rt2","specimen":"UARK27104","outgroup":false,"length":521,"seq":"GTAAACCTGCACCTAAAACGTAAATTCCCCACGGGAGAGCTTTCTCTCCCGGGGGGACCTGCTCCACAGTAAGCTACAGCTTGGCGGCGTAGCGAACACGAGGGACTCCAGCCATCCAGCACCGCAGCCCGGGTCGACCCCCTCGCGGGTCTTCCCTCCGTCCGCCCGGGGCATCAGCCCTGGGCGGGCAGCTGCCCAGCGGGGAAACGGCTGGAGCATCACCAAAGGTAATGTAAGGCGCCTAGGCGCAGACCGCAGGGCACGATGGGTTTCAGGCCTATCAGCTTGCTGGTAGGGTATTGGCCTACCAGGGCTGCAACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCCGAGAAATTGCCACCACTGCTACGGCAGGCAGCAGGCGCGCAACGTTCCCAATGTTTTTACATGAGGACGTGAAGGGGCGTAACAACGCCTCGCCTACGGCGAGGCGATTGAAATGGGGCGGGCTTAAACAACCCGCCGAGTAGCAATTGGAGGACAAGTCT"},{"id":"Reticularia_splendens_rt2_UARK20735","marker":"nucSSU","genus":"Reticularia","species":"splendens","ribotype":"rt2","specimen":"UARK20735","outgroup":false,"length":598,"seq":"GGGGCCTCAGGAAATCTGCGAACGGCTCCGTACAACTGTTATAAGCCTACCGTGGGGTGAAGAACGGATAAGCGGCGGTAAACCTGCACCTAAAACGTAAATTCCCCACGGGAGAGCTTTCTCTCCCGGGGGGACCTGCTCCACAGTAAGCTACAGCTTGGCGGCGTAGCGAACACGAGGGACTCCAGCCATCCAGCACCGCAGCCCGGGTCGACCCCCTCGCGGGTCTTCCCTCCGTCCGCCCGGGGCATCAGCCCTGGGCGGGCAGCTGCCCAGCGGGGAAACGGCTGGAGCATCACCAAAGGTAATGTAAGGCGCCTAGGCGCAGACCGCAGGGCACGATGGGTTTCAGGCCTATCAGCTTGCTGGTAGGGTATTGGCCTACCAGGGCTGCAACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCCGAGAAATTGCCACCACTGCTACGGCAGGCAGCAGGCGCGCAACGTTCCCAATGTTTTTACATGAGGACGTGAAGGGGCGTAACAACGCCTCGCCTACGGCGAGGCGATTGAAATGGGGCGGGCTTAAACAACCCGCCGAGTAGCAATTGGAGGACAAGTCT"},{"id":"Reticularia_splendens_rt3_TNSM13048","marker":"nucSSU","genus":"Reticularia","species":"splendens","ribotype":"rt3","specimen":"TNSM13048","outgroup":false,"length":651,"seq":"CTGCCAGAATCATATGCTTGCTCCGAAGACTAAGCCATGCATGCTAGGAAACCCTCCGGCCCCCGGGCCTTCACGGCCTTGGGGCCTCAGGAAATCTGCGAACGGCTCCGTACAACTGTTATAATCCTTCCGTGGGGTGAACAACGGATAAGCGGCGGTAAACCTGCACCTAAAACGTACGGTCCCCTCGGGGGAGCTACGGCTCTCCTGCGGGGGATCTTCTCCAAAGTACCCCTCCCTTTCCAGGGGGGCGGGAAACGAGGGACTCCAGCCATCCAGCACCGCAGCCTGGGTGGACCTCCCCCTCGGGGGGGGTCCCTCCCTACGTCCGCCCCCGGGCGGGCAGCTGCCCAGCGGGGAAACGGCTGGAGCCGCACCAAAGGTACTGTAAGGCGCTTCGGCGCAGACCGCAGGGCACGATGGGTTTCAGGCCTATCAGCTAGCTGGTAGGGTATTGGCCTACCAGGGCTGCAACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCCGAGAAATTGCCACCACTGCTACGGCAGGCAGCAGGCGCGCAACGTTCCCAATGTTTTCACATGAGGACGTGAAGGGGCGTAACAACGCCTCGCCTAAGGCGAGGCGATTGAAATGGGGCGGGCTTAAACAACCCGC"},{"id":"Reticularia_jurana_CWU-R0009","marker":"nucSSU","genus":"Reticularia","species":"jurana","ribotype":null,"specimen":"CWU-R0009","outgroup":false,"length":638,"seq":"AAGACTAAGCCATGCATGCTAGGACACCATGATGGCCCTGGGCTGGCTCTGCCCAGCCCAGCGGCCGCAAGGAATCTGCGAACGGCTCCGTACAACTGTTATAAGCCTGCCGTGGGGCGAGGCTCGGATAAGCGGCGGTAAACCTGCACCTAAAACGTATAGGGGCCGTCCCCCTCTTCGGGGGGGGAGGGCCCCAGCTCTTCAGTACCTGCTAAACAGGGAAACGAGGGCCTCCAAATAACGGAAAGCAGCTAGCCAGCCCCCTGCTTGCAGGGGGCTGACTGACCCCCCCTCGTGGGAGGCCTGCTGACCATACCAGGACGTGGCTGGAGACTAACCGAAGGTGCTGTAAGGCCCCACAAGGGCGGACCGCAGGGCACGATGGGTTTCAGCCCTATCAACCCGCTGGTAGGGTATTGGCCTACCAGGGTGACTACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCTGAGAAATTGCCACCACTGCTACGGCAGGCAGCAGGCGCGCAACGTTCCCAATGTTTTTACATGAGGACGTGAAGGGGCGTAACAACGCCTCGCTTAAAGCGAGGCGATTGAAATGGGGCGGGCTTAAACACCCCGCCGAGTAGCAATTGGAGGACAAGTCT"},{"id":"Reticularia_jurana_CWU-R0096","marker":"nucSSU","genus":"Reticularia","species":"jurana","ribotype":null,"specimen":"CWU-R0096","outgroup":false,"length":638,"seq":"AAGACTAAGCCATGCATGCTAGGACACCATGATGGCCCTGGGCTGGCTCTGCCCAGCCCAGCGGCCGCAAGGAATCTGCGAACGGCTCCGTACAACTGTTATAAGCCTGCCGTGGGGCGAGGCTCGGATAAGCGGCGGTAAACCTGCACCTAAAACGTATAGGGGCCGTCCCCCTCTTCGGGGGGGGAGGGCCCCAGCTCTTCAGTACCTGCTAAACAGGGAAACGAGGGCCTCCAAATAACGGAAAGCAGCTAGCCAGCCCCCTGCTTGCAGGGGGCTGACTGACCCCCCCTCGTGGGAGGCCTGCTGACCATACCAGGACGTGGCTGGAGACTAACCGAAGGTGCTGTAAGGCCCCACAAGGGCGGACCGCAGGGCACGATGGGTTTCAGCCCTATCAACCCGCTGGTAGGGTATTGGCCTACCAGGGTGACTACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCTGAGAAATTGCCACCACTGCTACGGCAGGCAGCAGGCGCGCAACGTTCCCAATGTTTTTACATGAGGACGTGAAGGGGCGTAACAACGCCTCGCTTAAAGCGAGGCGATTGAAATGGGGCGGGCTTAAACACCCCGCCGAGTAGCAATTGGAGGACAAGTCT"},{"id":"Reticularia_jurana_MSK-F43254","marker":"nucSSU","genus":"Reticularia","species":"jurana","ribotype":null,"specimen":"MSK-F43254","outgroup":false,"length":477,"seq":"AAGACTAAGCCATGCATGCTAGGACACCATGATGGCCCTGGGCTGGCTCTGCCCAGCCCAGCGGCCGCAAGGAATCTGCGAACGGCTCCGTACAACTGTTATAAGCCTGCCGTGGGGCGAGGCTCGGATAAGCGGCGGTAAACCTGCACCTAAAACGTATAGGGGCCGTCCCCCTCTTCGGGGGGGGAGGGCCCCAGCTCTTCAGTACCTGCTAAACAGGGAAACGAGGGCCTCCAAATAACGGAAAGCAGCTAGCCAGCCCCCTGCTTGCAGGGGGCTGACTGACCCCCCCTCGTGGGAGGCCTGCTGACCATACCAGGACGTGGCTGGAGACTAACCGAAGGTGCTGTAAGGCCCCACAAGGGCGGACCGCAGGGCACGATGGGTTTCAGCCCTATCAACCCGCTGGTAGGGTATTGGCCTACCAGGGTGACTACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCT"},{"id":"Reticularia_jurana_UARK34911","marker":"nucSSU","genus":"Reticularia","species":"jurana","ribotype":null,"specimen":"UARK34911","outgroup":false,"length":638,"seq":"AAGACTAAGCCATGCATGCTAGGACACCATGATGGCCCTGGGCTGGCTCTGCCCAGCCCAGCGGCCGCAAGGAATCTGCGAACGGCTCCGTACAACTGTTATAAGCCTGCCGTGGGGCGAGGCTCGGATAAGCGGCGGTAAACCTGCACCTAAAACGTATAGGGGCCGTCCCCCTCTTCGGGGGGGGAGGGCCCCAGCTCTTCAGTACCTGCTAAACAGGGAAACGAGGGCCTCCAAATAACGGAAAGCAGCTAGCCAGCCCCCTGCTTGCAGGGGGCTGACTGACCCCCCCTCGTGGGAGGCCTGCTGACCATACCAGGACGTGGCTGGAGACTAACCGAAGGTGCTGTAAGGCCCCACAAGGGCGGACCGCAGGGCACGATGGGTTTCAGCCCTATCAACCCGCTGGTAGGGTATTGGCCTACCAGGGTGACTACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCTGAGAAATTGCCACCACTGCTACGGCAGGCAGCAGGCGCGCAACGTTCCCAATGTTTTTACATGAGGACGTGAAGGGGCGTAACAACGCCTCGCTTAAAGCGAGGCGATTGAAATGGGGCGGGCTTAAACACCCCGCCGAGTAGCAATTGGAGGACAAGTCT"},{"id":"Reticularia_jurana_UARK22158","marker":"nucSSU","genus":"Reticularia","species":"jurana","ribotype":null,"specimen":"UARK22158","outgroup":false,"length":577,"seq":"CGGCCGCAAGGAATCTGCGAACGGCTCCGTACAACTGTTATAAGCCTGCCGTGGGGCGAGGCTCGGATAAGCGGCGGTAAACCTGCACCTAAAACGTATAGGGGCCGTCCCCCTCTTCGGGGGGGGAGGGCCCCAGCTCTTCAGTACCTGCTAAACAGGGAAACGAGGGCCTCCAAATAACGGAAAGCAGCTAGCCAGCCCCCTGCTTGCAGGGGGCTGACTGACCCCCCCTCGTGGGAGGCCTGCTGACCATACCAGGACGTGGCTGGAGACTAACCGAAGGTGCTGTAAGGCCCCACAAGGGCGGACCGCAGGGCACGATGGGTTTCAGCCCTATCAACCCGCTGGTAGGGTATTGGCCTACCAGGGTGACTACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCTGAGAAATTGCCACCACTGCTACGGCAGGCAGCAGGCGCGCAACGTTCCCAATGTTTTTACATGAGGACGTGAAGGGGCGTAACAACGCCTCGCTTAAAGCGAGGCGATTGAAATGGGGCGGGCTTAAACACCCCGCCGAGTAGCAATTGGAGGACAAGTCT"},{"id":"Reticularia_jurana_UARK22185","marker":"nucSSU","genus":"Reticularia","species":"jurana","ribotype":null,"specimen":"UARK22185","outgroup":false,"length":490,"seq":"CCTAAAACGTATAGGGGCCGTCCCCCTCTTCGGGGGGGGAGGGCCCCAGCTCTTCAGTACCTGCTAAACAGGGAAACGAGGGCCTCCAAATAACGGAAAGCAGCTAGCCAGCCCCCTGCTTGCAGGGGGCTGACTGACCCCCCCTCGTGGGAGGCCTGCTGACCATACCAGGACGTGGCTGGAGACTAACCGAAGGTGCTGTAAGGCCCCACAAGGGCGGACCGCAGGGCACGATGGGTTTCAGCCCTATCAACCCGCTGGTAGGGTATTGGCCTACCAGGGTGACTACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCTGAGAAATTGCCACCACTGCTACGGCAGGCAGCAGGCGCGCAACGTTCCCAATGTTTTTACATGAGGACGTGAAGGGGCGTAACAACGCCTCGCTTAAAGCGAGGCGATTGAAATGGGGCGGGCTTAAACACCCCGCCGAGTAGCAATTGGAGGACAAGTCT"},{"id":"Reticularia_jurana_MA83010","marker":"nucSSU","genus":"Reticularia","species":"jurana","ribotype":null,"specimen":"MA83010","outgroup":false,"length":621,"seq":"ATATGCTTGCTCCGAAGACTAAGCCATGCATGCTAGGACACCATGATGGCCCTGGGCTGGCTCTGCCCAGCCCAGCGGCCGCAAGGAATCTGCGAACGGCTCCGTACAACTGTTATAAGCCTGCCGTGGGGCGAGGCTCGGATAAGCGGCGGTAAACCTGCACCTAAAACGTATAGGGGCCGTCCCCCTCTTCGGGGGGGGAGGGCCCCAGCTCTTCAGTACCTGCTAAACAGGGAAACGAGGGCCTCCAAATAACGGAAAGCAGCTAGCCAGCCCCCTGCTTGCAGGGGGCTGACTGACCCCCCCTCGTGGGAGGCCTGCTGACCATACCAGGACGTGGCTGGAGACTAACCGAAGGTGCTGTAAGGCCCCACAAGGGCGGACCGCAGGGCACGATGGGTTTCAGCCCTATCAACCCGCTGGTAGGGTATTGGCCTACCAGGGTGACTACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCTGAGAAATTGCCACCACTGCTACGGCAGGCAGCAGGCGCGCAACGTTCCCAATGTTTTTACATGAGGACGTGAAGGGGCGTAACAACGCCTCGCTTAAAGCGAGGCGATTGAAATGGGGCGGGCTTAAACA"},{"id":"Reticularia_jurana_MA83011","marker":"nucSSU","genus":"Reticularia","species":"jurana","ribotype":null,"specimen":"MA83011","outgroup":false,"length":621,"seq":"ATATGCTTGCTCCGAAGACTAAGCCATGCATGCTAGGACACCATGATGGCCCTGGGCTGGCTCTGCCCAGCCCAGCGGCCGCAAGGAATCTGCGAACGGCTCCGTACAACTGTTATAAGCCTGCCGTGGGGCGAGGCTCGGATAAGCGGCGGTAAACCTGCACCTAAAACGTATAGGGGCCGTCCCCCTCTTCGGGGGGGGAGGGCCCCAGCTCTTCAGTACCTGCTAAACAGGGAAACGAGGGCCTCCAAATAACGGAAAGCAGCTAGCCAGCCCCCTGCTTGCAGGGGGCTGACTGACCCCCCCTCGTGGGAGGCCTGCTGACCATACCAGGACGTGGCTGGAGACTAACCGAAGGTGCTGTAAGGCCCCACAAGGGCGGACCGCAGGGCACGATGGGTTTCAGCCCTATCAACCCGCTGGTAGGGTATTGGCCTACCAGGGTGACTACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCTGAGAAATTGCCACCACTGCTACGGCAGGCAGCAGGCGCGCAACGTTCCCAATGTTTTTACATGAGGACGTGAAGGGGCGTAACAACGCCTCGCTTAAAGCGAGGCGATTGAAATGGGGCGGGCTTAAACA"},{"id":"Reticularia_jurana_MA83274","marker":"nucSSU","genus":"Reticularia","species":"jurana","ribotype":null,"specimen":"MA83274","outgroup":false,"length":636,"seq":"ATATGCTTGCTCCGAAGACTAAGCCATGCATGCTAGGACACCATGATGGCCCTGGGCTGGCTCTGCCCAGCCCAGCGGCCGCAAGGAATCTGCGAACGGCTCCGTACAACTGTTATAAGCCTGCCGTGGGGCGAGGCTCGGATAAGCGGCGGTAAACCTGCACCTAAAACGTATAGGGGCCGTCCCCCTCTTCGGGGGGGGAGGGCCCCAGCTCTTCAGTACCTGCTAAACAGGGAAACGAGGGCCTCCAAATAACGGAAAGCAGCTAGCCAGCCCCCTGCTTGCAGGGGGCTGACTGACCCCCCCTCGTGGGAGGCCTGCTGACCATACCAGGACGTGGCTGGAGACTAACCGAAGGTGCTGTAAGGCCCCACAAGGGCGGACCGCAGGGCACGATGGGTTTCAGCCCTATCAACCCGCTGGTAGGGTATTGGCCTACCAGGGTGACTACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCTGAGAAATTGCCACCACTGCTACGGCAGGCAGCAGGCGCGCAACGTTCCCAATGTTTTTACATGAGGACGTGAAGGGGCGTAACAACGCCTCGCTTAAAGCGAGGCGATTGAAATGGGGCGGGCTTAAACACCCCGCCGAGTAGCA"},{"id":"Reticularia_jurana_sc32539","marker":"nucSSU","genus":"Reticularia","species":"jurana","ribotype":null,"specimen":"sc32539","outgroup":false,"length":646,"seq":"CTGCCAGAATCATATGCTTGCTCCGAAGACTAAGCCATGCATGCTAGGACACCATGATGGCCCTGGGCTGGCTCTGCCCAGCCCAGCGGCCGCAAGGAATCTGCGAACGGCTCCGTACAACTGTTATAAGCCTGCCGTGGGGCGAGGCTCGGATAAGCGGCGGTAAACCTGCACCTAAAACGTATAGGGGCCGTCCCCCTCTTCGGGGGGGGAGGGCCCCAGCTCTTCAGTACCTGCTAAACAGGGAAACGAGGGCCTCCAAATAACGGAAAGCAGCTAGCCAGCCCCCTGCTTGCAGGGGGCTGACTGACCCCCCCTCGTGGGAGGCCTGCTGACCATACCAGGACGTGGCTGGAGACTAACCGAAGGTGCTGTAAGGCCCCACAAGGGCGGACCGCAGGGCACGATGGGTTTCAGCCCTATCAACCCGCTGGTAGGGTATTGGCCTACCAGGGTGACTACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCTGAGAAATTGCCACCACTGCTACGGCAGGCAGCAGGCGCGCAACGTTCCCAATGTTTTTACATGAGGACGTGAAGGGGCGTAACAACGCCTCGCTTAAAGCGAGGCGATTGAAATGGGGCGGGCTTAAACACCCCGCCGAGTAGC"},{"id":"Reticularia_jurana_CWP5114","marker":"nucSSU","genus":"Reticularia","species":"jurana","ribotype":null,"specimen":"CWP5114","outgroup":false,"length":510,"seq":"CTGCCAGAATCATATGCTTGCTCCGAAGACTAAGCCATGCATGCTAGGACACCATGATGGCCCTGGGCTGGCTCTGCCCAGCCCAGCGGCCGCAAGGAATCTGCGAACGGCTCCGTACAACTGTTATAAGCCTGCCGTGGGGCGAGGCTCGGATAAGCGGCGGTAAACCTGCACCTAAAACGTATAGGGGCCGTCCCCCTCTTCGGGGGGGGAGGGCCCCAGCTCTTCAGTACCTGCTAAACAGGGAAACGAGGGCCTCCAAATAACGGAAAGCAGCTAGCCAGCCCCCTGCTTGCAGGGGGCTGACTGACCCCCCCTCGTGGGAGGCCTGCTGACCATACCAGGACGTGGCTGGAGACTAACCGAAGGTGCTGTAAGGCCCCACAAGGGCGGACCGCAGGGCACGATGGGTTTCAGCCCTATCAACCCGCTGGTAGGGTATTGGCCTACCAGGGTGACTACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCTGAGAAATT"},{"id":"Reticularia_sp._rt1a_AMFD290","marker":"nucSSU","genus":"Reticularia","species":"sp.","ribotype":"rt1a","specimen":"AMFD290","outgroup":false,"length":667,"seq":"CTGCCAGAATCATATGCTTGCTCCGAAGACTAAGCCATGCATGCTAGGACACCATGATGGCCCTGGGCCGGCTCAGCCCGGCCCAGAGGCCGCAAGGAATCTGCGAACGGCTCCGTACAACTGTTATAATCCTGCCGTGGGGCGACTCGGATAAGTGGCGGTAAACCTGCACCTAAAACGTATAGGGGCCCCCCCCAGCTCTGCAGGGGAGGGCCCCAGCTCTTCAGTACCTGCTAAAACAGGGAAACGAGGGCCTCCAAATAACGGAAAGCAGCCAGCCGGCCTGCCCCCCGGGGCGGGCCGACTCGTCCCTGGGCACTCCCCAGGGGCCTGCTGTTCCATACCAGGACGTGGCTGGAGACTAACCGAAGGTGCTGTAAGGCCCCGCAAGGGGCGGACCGCAGGGCACGATGGGTTTCAGGCCTATCAACTTGCTGGTAGGGTATTGGCCTACCAGGGTTGTTACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCTGAGAAATTGCCACCACTGCTACGGCAGGCAGCAGGCGCGCAACGTTCCCAATGTTTTTACATGAGGACGTGAAGGGGCGTAACAACGCCTCGCCTAAGGCGAGGCGATTGAAATGGGGCGGGCTTAAACACCCCGCCGAGTAGCAATTGGAGGACAAGTCT"},{"id":"Reticularia_sp._rt1b_sc5797","marker":"nucSSU","genus":"Reticularia","species":"sp.","ribotype":"rt1b","specimen":"sc5797","outgroup":false,"length":643,"seq":"AAGACTAAGCCATGCATGCTAGGACACCATGATGGCCCTGGGCTGGCTCTGCCCAGCCCAGCGGCCGCAAGGAATCTGCGAACGGCTCCGTACAACTGTTATAATCCTGCCGTGGGGCGAGACTCGGATAAGTGGCGGTAAACCTGCACCTAAAACGTATAGGGGCTCTCCCCTGCTTGCGGGGGAGGGCCCCAGCTCTTCAGTACCTGCTAAAACAGGGAAACGAGGGCCTCCAAATAACGGAAAGCAGCCAGCCAGCCTGCCCCCCGGGGCGGGCTGACTCGTCCCTGGGTACTCCCCAGGGGCCTGCTGTTCCATACCAGGACGTGGCTGGAGTCTAACCGAAGGTGCTGTAAGGCCCCGCAAGGGGCGGACCGCAGGGCACGATGGGTTTCAGGCCTATCAACTCGCTGGTAGGGTATTGGCCTACCAGGGTTGTTACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCTGAGAAATTGCCACCACTGCTACGGCAGGCAGCAGGCGCGCAACGTTCCCAATGTTTTTACATGAGGACGTGAAGGGGCGTAACAACGCCTCGCCTAAGGCGAGGCGATTGAAATGGGGCGGGCTTAAACACCCCGCCGAGTAGCAATTGGAGGACAAGTCT"},{"id":"Reticularia_sp._rt2_JH2310","marker":"nucSSU","genus":"Reticularia","species":"sp.","ribotype":"rt2","specimen":"JH2310","outgroup":false,"length":644,"seq":"AAGACTAAGCCATGCATGCTAGGACACCATGATGGCCCTGGGCCGGCTCAGCCCGGCCCAGAGGCCGCAAGGAATCTGCGAACGGCTCCGTACAACTGTTATAATCCTGCCGTGGGGCGAGACTCGGATAAGTGGCGGTAAACCTGCACCTAAAACGTATAGGGGCCCCCCCCAGCTCTGCAGGGGAGGGCCCCAGCTCTTCAGTACCTGCTAAAACAGGGAAACGAGGGCCTCCAAATAACGGAAAGCAGCCAGCCGGCCTGCCCCCCGGGGCGGGCCGACTCGTCCCTGGGCACTCCCCAGGGGCCTGCTGTTCCATACCAGGACGTGGCTGGAGACTAACCGAAGGTGCTGTAAGGCCCCGCAAGGGGCGGACCGCAGGGCACGATGGGTTTCAGGCCTATCAACTTGCTGGTAGGGTATTGGCCTACCAGGGTTGTTACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCTGAGAAATTGCCACCACTGCTACGGCAGGCAGCAGGCGCGCAACGTTCCCAATGTTTTTACATGAGGACGTGAAGGGGCGTAACAACGCCTCGCCTAAGGCGAGGCGATTGAAATGGGGCGGGCTTAAACACCCCGCCGAGTAGCAATTGGAGGACAAGTCT"},{"id":"Reticularia_tasmanica_SJL0244","marker":"nucSSU","genus":"Reticularia","species":"tasmanica","ribotype":null,"specimen":"SJL0244","outgroup":false,"length":514,"seq":"CTGCCAGAATCATATGCTTGCTCCGAAGACTAAGCCATGCATGCTAAGACACCGTGATGGCCCTGGGCTGGCCCGGCCCAGACCCAGTGGCCTCTAGGAATCTGCGAACGGCTCCGTACAACTGTTATAAGCCTGCCGTGGGGTAAGGCTCGGATAAGCGGCGGTAAACCTGCACCTAAAACGTATAGGGCCGCCCCCGCCTGGCCTACGGACGGGGGGGGCCCAGCTCTTAAGTACCCAAGGGGAAACGAGGGCCTCCAGAAAACGGAAAGCAGCCAGCCGGCCTGCCCTTGCCAGGGCCGGGCCGGCCTGCCCTTGGGCGGCACTGCTTGCCCAGGGGCCTGCGATCCATCCCAGGACGGGGCTGGAGACTAACCGAAGGTGATGTAAGGCCCGAGAGGGCGGACCGCAGGGCACGATGGGTTTCAGGCCTATCAACTCGCTGGTAGGGTATTGGCCTACCAGGGTTTCTACGGGTACAGAGGATTAGGGTTTGATCCCGGAGAGGTGGCCT"},{"id":"Reticularia_tasmanica_SJL0809","marker":"nucSSU","genus":"Reticularia","species":"tasmanica","ribotype":null,"specimen":"SJL0809","outgroup":false,"length":521,"seq":"CTGCCAGAATCATATGCTTGCTCCGAAGACTAAGCCATGCATGCTAAGACACCGTGATGGCCCTGGGCTGGCCCGGCCCAGACCCAGTGGCCTCTAGGAATCTGCGAACGGCTCCGTACAACTGTTATAAGCCTGCCGTGGGGTAAGGCTCGGATAAGCGGCGGTAAACCTGCACCTAAAACGTATAGGGCCGCCCCCGCCTGGCCTACGGACGGGGGGGGCCCAGCTCTTAAGTACCCAAGGGGAAACGAGGGCCTCCAGAAAACGGAAAGCAGCCAGCCGGCCTGCCCTTGCCAGGGCCGGGCCGGCCTGCCCTTGGGCGGCACTGCTTGCCCAGGGGCCTGCGATCCATCCCAGGACGGGGCTGGAGACTAACCGAAGGTGATGTAAGGCCCGAGAGGGCGGACCGCAGGGCACGATGGGTTTCAGGCCTATCAACTCGCTGGTAGGGTATTGGCCTACCAGGGTTTCTACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCTGAGAAAT"},{"id":"Reticularia_tasmanica_SJL0818","marker":"nucSSU","genus":"Reticularia","species":"tasmanica","ribotype":null,"specimen":"SJL0818","outgroup":false,"length":534,"seq":"CTGCCAGAATCATATGCTTGCTCCGAAGACTAAGCCATGCATGCTAAGACACCGTGATGGCCCTGGGCTGGCCCGGCCCAGACCCAGTGGCCTCTAGGAATCTGCGAACGGCTCCGTACAACTGTTATAAGCCTGCCGTGGGGTAAGGCTCGGATAAGCGGCGGTAAACCTGCACCTAAAACGTATAGGGCCGCCCCCGCCTGGCCTACGGACGGGGGGGGCCCAGCTCTTAAGTACCCAAGGGGAAACGAGGGCCTCCAGAAAACGGAAAGCAGCCAGCCGGCCTGCCCTTGCCAGGGCCGGGCCGGCCTGCCCTTGGGCGGCACTGCTTGCCCAGGGGCCTGCGATCCATCCCAGGACGGGGCTGGAGACTAACCGAAGGTGATGTAAGGCCCGAGAGGGCGGACCGCAGGGCACGATGGGTTTCAGGCCTATCAACTCGCTGGTAGGGTATTGGCCTACCAGGGTTTCTACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCTGAGAAATTGCCACCACTGCT"},{"id":"Reticularia_tasmanica_SJL0832","marker":"nucSSU","genus":"Reticularia","species":"tasmanica","ribotype":null,"specimen":"SJL0832","outgroup":false,"length":538,"seq":"CTGCCAGAATCATATGCTTGCTCCGAAGACTAAGCCATGCATGCTAAGACACCGTGATGGCCCTGGGCTGGCCCGGCCCAGACCCAGTGGCCTCTAGGAATCTGCGAACGGCTCCGTACAACTGTTATAAGCCTGCCGTGGGGTAAGGCTCGGATAAGCGGCGGTAAACCTGCACCTAAAACGTATAGGGCCGCCCCCGCCTGGCCTACGGACGGGGGGGGCCCAGCTCTTAAGTACCCAAGGGGAAACGAGGGCCTCCAGAAAACGGAAAGCAGCCAGCCGGCCTGCCCTTGCCAGGGCCGGGCCGGCCTGCCCTTGGGCGGCACTGCTTGCCCAGGGGCCTGCGATCCATCCCAGGACGGGGCTGGAGACTAACCGAAGGTGATGTAAGGCCCGAGAGGGCGGACCGCAGGGCACGATGGGTTTCAGGCCTATCAACTCGCTGGTAGGGTATTGGCCTACCAGGGTTTCTACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCTGAGAAATTGCCACCACTGCTACGG"},{"id":"Reticularia_tasmanica_SJL1354","marker":"nucSSU","genus":"Reticularia","species":"tasmanica","ribotype":null,"specimen":"SJL1354","outgroup":false,"length":512,"seq":"CTGCCAGAATCATATGCTTGCTCCGAAGACTAAGCCATGCATGCTAAGACACCGTGATGGCCCTGGGCTGGCCCGGCCCAGACCCAGTGGCCTCTAGGAATCTGCGAACGGCTCCGTACAACTGTTATAAGCCTGCCGTGGGGTAAGGCTCGGATAAGCGGCGGTAAACCTGCACCTAAAACGTATAGGGCCGCCCCCGCCTGGCCTACGGACGGGGGGGGCCCAGCTCTTAAGTACCCAAGGGGAAACGAGGGCCTCCAGAAAACGGAAAGCAGCCAGCCGGCCTGCCCTTGCCAGGGCCGGGCCGGCCTGCCCTTGGGCGGCACTGCTTGCCCAGGGGCCTGCGATCCATCCCAGGACGGGGCTGGAGACTAACCGAAGGTGATGTAAGGCCCGAGAGGGCGGACCGCAGGGCACGATGGGTTTCAGGCCTATCAACTCGCTGGTAGGGTATTGGCCTACCAGGGTTTCTACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGC"},{"id":"Reticularia_tasmanica_SJL1632","marker":"nucSSU","genus":"Reticularia","species":"tasmanica","ribotype":null,"specimen":"SJL1632","outgroup":false,"length":519,"seq":"TCCGAAGACTAAGCCATGCATGCTAAGACACCGTGATGGCCCTGGGCTGGCCCGGCCCAGACCCAGTGGCCTCTAGGAATCTGCGAACGGCTCCCTACAACTGTTATAAGCCTGCCGTGGGGTAAGGCTCGGATAAGCGGCGGTAAACCTGCACCTAAAACGTATAGGGCCGCCCCCGCCTGGCCTACGGACGGGGGGGGCCCAGCTCTTAAGTACCCAAGGGGAAACGAGGGCCTCCAGAAAACGGAAAGCAGCCAGCCGGCCTGCCCTTGCCAGGGCCGGGCCGGCCTGCCCTTGGGCGGCACTGCTTGCCCAGGGGCCTGCGATCCATCCCAGGACGGGGCTGGAGACTAACCGAAGGTGATGTAAGGCCCGAGAGGGCGGACCGCAGGGCACGATGGGTTTCAGGCCTATCAACTCGCTGGTAGGGTATTGGCCTACCAGGGTTTCTACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCTGAGAAATTGCCACCACTGCTACGGAG"},{"id":"Reticularia_tasmanica_SJL1783","marker":"nucSSU","genus":"Reticularia","species":"tasmanica","ribotype":null,"specimen":"SJL1783","outgroup":false,"length":540,"seq":"CTGCCAGAATCATATGCTTGCTCCGAAGACTAAGCCATGCATGCTAAGACACCGTGATGGCCCTGGGCTGGCCCGGCCCAGACCCAGTGGCCTCTAGGAATCTGCGAACGGCTCCGTACAACTGTTATAAGCCTGCCGTGGGGTAAGGCTCGGATAAGCGGCGGTAAACCTGCACCTAAAACGTATAGGGCCGCCCCCGCCTGGCCTACGGACGGGGGGGGCCCAGCTCTTAAGTACCCAAGGGGAAACGAGGGCCTCCAGAAAACGGAAAGCAGCCAGCCGGCCTGCCCTTGCCAGGGCCGGGCCGGCCTGCCCTTGGGCGGCACTGCTTGCCCAGGGGCCTGCGATCCATCCCAGGACGGGGCTGGAGACTAACCGAAGGTGATGTAAGGCCCGAGAGGGCGGACCGCAGGGCACGATGGGTTTCAGGCCTATCAACTCGCTGGTAGGGTATTGGCCTACCAGGGTTTCTACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCTGAGAAATTGCCACCACTGCTACGGAG"},{"id":"Reticularia_tasmanica_SJL1788","marker":"nucSSU","genus":"Reticularia","species":"tasmanica","ribotype":null,"specimen":"SJL1788","outgroup":false,"length":514,"seq":"CTGCCAGAATCATATGCTTGCTCCGAAGACTAAGCCATGCATGCTAAGACACCGTGATGGCCCTGGGCTGGCCCGGCCCAGACCCAGTGGCCTCTAGGAATCTGCGAACGGCTCCGTACAACTGTTATAAGCCTGCCGTGGGGTAAGGCTCGGATAAGCGGCGGTAAACCTGCACCTAAAACGTATAGGGCCGCCCCCGCCTGGCCTACGGACGGGGGGGGCCCAGCTCTTAAGTACCCAAGGGGAAACGAGGGCCTCCAGAAAACGGAAAGCAGCCAGCCGGCCTGCCCTTGCCAGGGCCGGGCCGGCCTGCCCTTGGGCGGCACTGCTTGCCCAGGGGCCTGCGATCCATCCCAGGACGGGGCTGGAGACTAACCGAAGGTGATGTAAGGCCCGAGAGGGCGGACCGCAGGGCACGATGGGTTTCAGGCCTATCAACTCGCTGGTAGGGTATTGGCCTACCAGGGTTTCTACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCT"},{"id":"Reticularia_tasmanica_SJL2133","marker":"nucSSU","genus":"Reticularia","species":"tasmanica","ribotype":null,"specimen":"SJL2133","outgroup":false,"length":514,"seq":"CTGCCAGAATCATATGCTTGCTCCGAAGACTAAGCCATGCATGCTAAGACACCGTGATGGCCCTGGGCTGGCCCGGCCCAGACCCAGTGGCCTCTAGGAATCTGCGAACGGCTCCGTACAACTGTTATAAGCCTGCCGTGGGGTAAGGCTCGGATAAGCGGCGGTAAACCTGCACCTAAAACGTATAGGGCCGCCCCCGCCTGGCCTACGGACGGGGGGGGCCCAGCTCTTAAGTACCCAAGGGGAAACGAGGGCCTCCAGAAAACGGAAAGCAGCCAGCCGGCCTGCCCTTGCCAGGGCCGGGCCGGCCTGCCCTTGGGCGGCACTGCTTGCCCAGGGGCCTGCGATCCATCCCAGGACGGGGCTGGAGACTAACCGAAGGTGATGTAAGGCCCGAGAGGGCGGACCGCAGGGCACGATGGGTTTCAGGCCTATCAACTCGCTGGTAGGGTATTGGCCTACCAGGGTTTCTACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCT"},{"id":"Reticularia_tasmanica_SJL2236","marker":"nucSSU","genus":"Reticularia","species":"tasmanica","ribotype":null,"specimen":"SJL2236","outgroup":false,"length":411,"seq":"AGCCTGCCGTGGGGTAAGGCTCGGATAAGCGGCGGTAAACCTGCACCTAAAACGTATAGGGCCGCCCCCGCCTGGCCTACGGACGGGGGGGGCCCAGCTCTTAAGTACCCAAGGGGAAACGAGGGCCTCCAGAAAACGGAAAGCAGCCAGCCGGCCTGCCCTTGCCAGGGCCGGGCCGGCCTGCCCTTGGGCGGCACTGCTTGCCCAGGGGCCTGCGATCCATCCCAGGACGGGGCTGGAGACTAACCGAAGGTGATGTAAGGCCCGAGAGGGCGGACCGCAGGGCACGATGGGTTTCAGGCCTATCAACTCGCTGGTAGGGTATTGGCCTACCAGGGTTTCTACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCTGAGAAATTGCCACCACTGCTACGGAG"},{"id":"Reticularia_lycoperdon_rt1a_AMFD262","marker":"nucSSU","genus":"Reticularia","species":"lycoperdon","ribotype":"rt1a","specimen":"AMFD262","outgroup":false,"length":682,"seq":"CTGCCAGAATCATATGCTTGCTCCGAAGACTAAGCCATGCATGTCAAGACACCATGAAGGGCCCCCCCGGGCTCGCCTCGGGGGTGTTGCTCAGTGGAATCTGCGAACGGCTCCGTACAACTGCTATAATCCTGCCGTGGGGTGACCCGGATAAGCAGCGGTAAACCTGCGCCTAAAACGTAGAGGGGACCGCGGGCCCTTCGTGGGCTCGCGGGGCCCCAACCTCAAAGTACCCAATGCCGCGCCAGCGAGCGGGGAAACGGGGGCCTCCACGTACTTGGAATGCAGCCAGCCCGCCTCCCCTCTGCGGGGGAGGGGGGCTCGGCCTGGGGTTACGACCCCAGTGCCCTGCACTCTAGCCCAGGAACGCTGAAAGGAGTCAAACCGAAGGCACAGTAAGGCCCCCGCAAGGGGCAGGCCGATGGGCACGATGGGTTTCAGGCCTATCAACCCGCTGGTAGGGTATTGGCCTACCAGGGTTGCAACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCCGAGAAATTGCCACCACTGCTACGGCAGGCAGCAGGCGCGCAACGTTCCCAATGTTATCACATGAGGACGTGAGGGGGCGTAACAACGCCCCGCATAACGCGGGGCGATTGAAATGGGGCGGGCTTAAACACCCCGCCGAGTAGCAATTGGAGGACA"},{"id":"Reticularia_lycoperdon_rt1b_MSK-F40968","marker":"nucSSU","genus":"Reticularia","species":"lycoperdon","ribotype":"rt1b","specimen":"MSK-F40968","outgroup":false,"length":536,"seq":"CTGCCAGAATCATATGCTTGCTCCGAAGACTAAGCCATGCATGTCAAGACACCATGAAGGGCCCCCCCGGGCTCGCCTCGGGGGTGTTGCTCAGTGGAATCTGCGAACGGCTCCGTACAACTGCTATAATCCTGCCGTGGGGTGAGACCCGGATAAGCAGCGGTAAACCTGCGCCTAAAACGTAGAGGGGACCGCGGGCCCTTCGTGGGCTCGCGGGGCCCCAACCTCAAAGTACCCAATGCCGCGTCAGCGAGCGGGGAAACGGGGGCCTCCACGTACTTGGAATGCAGCCAGCCCGCCTCCCCTCTGCGGGGGAGGGGGGCTCGGCCTGGGGTTACGGCCCCAGCGCCCTGCACTCTAGCCCAGGAACGCTGAAAGGAGTCAAACCGAAGGCACAGTAAGGCCCCCGCAAGGGGCAGGCCGATGGGCACGATGGGTTTCAGGCCTATCAACCCGCTGGTAGGGTATTGGCCTACCAGGGTTGCAACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCCGAGAAATT"},{"id":"Reticularia_lycoperdon_rt2_MSK-F42594","marker":"nucSSU","genus":"Reticularia","species":"lycoperdon","ribotype":"rt2","specimen":"MSK-F42594","outgroup":false,"length":535,"seq":"TGCCAGAATCATATGCTTGCTCCGAAGACTAAGCCATGCATGTCAAGACACCACGAAGGGCCCCCCCGGGCTCGCCTCGGGGGTGTAGCTCAGTGGAATCTGCGAACGGCTCCGTACAACTGCTATAATCCTGCCGTGGGGTGAGACCCGGATAAGCAGCGGTAAACCTGCGCCTAAAACGTAGAGGGGACCGCGGGAGCTTCGTTGAGCCCGCGGGGCCCCAACCCTATAGTACCCAATGCCGCACCAGCGAGCGGGGAAACGGGGGCCTCCACGTACTTGGATTGCAGCTAGCTCACCTCCCCTCTGCGGGGGAGGGGGGCTCGGCCTGGGGTTACGGCCCCAGCGCCCTGCACTCTAGCCCAGGAACGCTGAAAGGAGTCAAACCGAAGGCACAGTAAGGCCCCCGCAAGGGGCAGGCCGATGGGCACGATGGGTTTCAGGCCTATCAACCCGCTGGTAGGGTATTGGCCTACCAGGGTTGCAACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCCGAGAAAT"},{"id":"Reticularia_lycoperdon_rt2_MSK-F43300","marker":"nucSSU","genus":"Reticularia","species":"lycoperdon","ribotype":"rt2","specimen":"MSK-F43300","outgroup":false,"length":535,"seq":"TGCCAGAATCATATGCTTGCTCCGAAGACTAAGCCATGCATGTCAAGACACCACGAAGGGCCCCCCCGGGCTCGCCTCGGGGGTGTAGCTCAGTGGAATCTGCGAACGGCTCCGTACAACTGCTATAATCCTGCCGTGGGGTGAGACCCGGATAAGCAGCGGTAAACCTGCGCCTAAAACGTAGAGGGGACCGCGGGAGCTTCGTTGAGCCCGCGGGGCCCCAACCCTATAGTACCCAATGCCGCACCAGCGAGCGGGGAAACGGGGGCCTCCACGTACTTGGATTGCAGCTAGCTCACCTCCCCTCTGCGGGGGAGGGGGGCTCGGCCTGGGGTTACGGCCCCAGCGCCCTGCACTCTAGCCCAGGAACGCTGAAAGGAGTCAAACCGAAGGCACAGTAAGGCCCCCGCAAGGGGCAGGCCGATGGGCACGATGGGTTTCAGGCCTATCAACCCGCTGGTAGGGTATTGGCCTACCAGGGTTGCAACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCCGAGAAAT"},{"id":"Reticularia_lycoperdon_rt2_sc22063","marker":"nucSSU","genus":"Reticularia","species":"lycoperdon","ribotype":"rt2","specimen":"sc22063","outgroup":false,"length":665,"seq":"AAGACTAAGCCATGCATGTCAAGACACCACGAAGGGCCCCCCCGGGCTCGCCTCGGGGGTGTAGCTCAGTGGAATCTGCGAACGGCTCCGTACAACTGCTATAATCCTGCCGTGGGGTGAGACCCGGATAAGCAGCGGTAAACCTGCGCCTAAAACGTAGAGGGGACCGCGGGAGCTTCGTTGAGCCCGCGGGGCCCCAACCCTATAGTACCCAATGCCGCACCAGCGAGCGGGGAAACGGGGGCCTCCACGTACTTGGATTGCAGCTAGCTCACCTCCCCTCTGCGGGGGAGGGGGGCTCGGCCTGGGGTTACGGCCCCAGCGCCCTGCACTCTAGCCCAGGAACGCTGAAAGGAGTCAAACCGAAGGCACAGTAAGGCCCCCGCAAGGGGCAGGCCGATGGGCACGATGGGTTTCAGGCCTATCAACCCGCTGGTAGGGTATTGGCCTACCAGGGTTGCAACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCCGAGAAATTGCCACCACTGCTACGGCAGGCAGCAGGCGCGCAACGTTCCCAATGTTATCACATGAGGACGTGAGGGAGCGTAACAACGCCCCGCAAAACGCGGGGCGATTGAAATGGGGCGGGCTTAAACACCCCGCCGAGTAGCAATTGGAGGACAAGTCT"},{"id":"Reticularia_lucidula_TNSM12857","marker":"nucSSU","genus":"Reticularia","species":"lucidula","ribotype":null,"specimen":"TNSM12857","outgroup":false,"length":639,"seq":"CTGCCAGAATTATATGCTTGCTCCGAAGAATTAGCCCTGCCTGCTAGGACACCATGTCGGCCCTGGGCGGGCGAGGACCCGCCCAGCGGCCGCTAGGGATTTGCGAAAGGCTCCGTACAAATGTTATAAGCCTGCCGTGGGGCGTGGCTTGGATAAGGGGCGGTAAACCTGCACCTAAAAAGTATAGGGGCCCCCTCCCTTGGGGGGGGGGGTCCCAGCTCTTCAGTACCCGTGATAAGGGGAAACGAGGGCCTCCAGAAAAAGGAAAGCAGCTAGCGGGGCCCCCCTCGGGGGGCCCCTGCCTGTCCCCCCCGGTCCGCCGCGGGGGGCCTGCTGATCCATACCAGGACGTGGCTGGAGACTAACCGAAGGTGTTGTAAGGCCCCGCCAGGGGCAGACCGCAGGGCACGATGGGTTTCAGGCCTATCAACTCGCTGGTAGGGTATTGGCCTACCAGGGTCGCGACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCTGAGAAATTGCCACCACTGCTACGGCAGGCAGCAGGCGCGCAACGTTCCCAATGTTTTCACATGAGGACGTGAAGGAGCGTAACAACACCCCCCTAACGGGGGGCGATTGAAATGGGGCGTGCTTAAACAACCC"},{"id":"Reticularia_lucidula_TNSM13338","marker":"nucSSU","genus":"Reticularia","species":"lucidula","ribotype":null,"specimen":"TNSM13338","outgroup":false,"length":639,"seq":"CTGCCAGAATTATATGCTTGCTCCGAAGAATTAGCCCTGCCTGCTAGGACACCATGTCGGCCCTGGGCGGGCGAGGACCCGCCCAGCGGCCGCTAGGGATTTGCGAAAGGCTCCGTACAAATGTTATAAGCCTGCCGTGGGGCGTGGCTTGGATAAGGGGCGGTAAACCTGCACCTAAAAAGTATAGGGGCCCCCTCCCTTGGGGGGGGGGGTCCCAGCTCTTCAGTACCCGTGATAAGGGGAAACGAGGGCCTCCAGAAAAAGGAAAGCAGCTAGCGGGGCCCCCCTCGGGGGGCCCCTGCCTGTCCCCCCCGGTCCGCCGCGGGGGGCCTGCTGATCCATACCAGGACGTGGCTGGAGACTAACCGAAGGTGTTGTAAGGCCCCGCCAGGGGCAGACCGCAGGGCACGATGGGTTTCAGGCCTATCAACTCGCTGGTAGGGTATTGGCCTACCAGGGTCGCGACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTGGCCTGAGAAATTGCCACCACTGCTACGGCAGGCAGCAGGCGCGCAACGTTCCCAATGTTTTCACATGAGGACGTGAAGGAGCGTAACAACACCCCCCTAACGGGGGGCGATTGAAATGGGGCGTGCTTAAACAACCC"},{"id":"Lycogala_epidendrum_MSK-F43322_rg01b1","marker":"nucSSU","genus":"Lycogala","species":"epidendrum","ribotype":"rg01b1","specimen":"MSK-F43322","outgroup":true,"length":650,"seq":"CTGCCAGAATTCATATGCTTGTCCCGAAGACTCAAGCCATGCATGCCTAGAAGAAAAATTGGCGCCCTACTGGTGCGCGGGCCCTCCCAGGCCCGTTAGTGCCGACCGGGATTGTCAAGGAATCAGCGAACGGCTCCGCATATCTGTTGTCACCTATCGTGGTAAATACGGCGTGGATAGAGCACGGAAAAGCTGTGTATAACACAGAACAGTGGGGTCACCGCTGCCCGTTGGCATGGGCAGTGGGGATAAGTGGGCCCATACCCATGGGCCCCACCTCATGAACGGCTCTTAAAGTAGGCCAGGGACTAAAGACCCCTGGACGAAACAGAGGCCTCTGCCACGGACATGTCTACCAACTGCCTTGACCGGGGTTGGTCTTGTCCGAGCGCGGCAGAGCCCATCCACAAGCGCACGATGGACTTCAGACCTATCAGCTAGACGGTAGGGTATTGGCCTACCGTGGCGATGACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTAGCCTGAGAAATCGCTCCCACTTCTAAGGAAGGCAGCAGGCGCGTAACGTTCCCAATGCTAGTACCCCTAGTGAGGACGTAATGGGACATAACAATACCCCTTATTGATAGTGGGTAATTGATAATGGGGCGGGCATAAAAC"},{"id":"Lycogala_roseosporum_IY005_rg07","marker":"nucSSU","genus":"Lycogala","species":"roseosporum","ribotype":"rg07","specimen":"IY005","outgroup":true,"length":721,"seq":"CTGCCAGAATTCATATGCTTGTCCCGAAGAATTAAGCCATGCATGCCCATGACAAATCGGTTCTGGGGGGAATTTCCTGCGGGGATGGCGAGTTTGGGTTTGACTGTAAGGCCAAAATACAATTCCCCCCACATAGAAACGAGGAATCAGCGAACGGCTCCGCATATCTGTTGTGACCTATCGTGGTAAGTAAGGCGTGGATATAGCACGGAAAAGCTGTGTGTAACACAGTTGAATGGGGCAACCCCTCGGCCGAGTGTCTCTCGGTCTGTTTGGGCTAACTGGAACTGGCACGCTTTGACCACGTGCTGATCCGGCCTCGCAAATCCTCCTAAAGTATGCCGACAATTCCGGGGGTGGGCAACAATCCCGCCTACCGACGGTAAAAAACGGAGGCCTCTTCTTGGGAACTCTCCCGACCGGGTATCACGCCCTAAGCTGGATTTGGGCCCGGATTGCGCATTCCCCTCAATAAGAAGAGTCTAACCACGAGCGCACGATGGGCTTCAGACCTATCAGCTTGATGGTAGGGTATTGGCCTACCATGGCAATGACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTAGCCTGAGAAATCGCTCCCACTTCTAAGGAAGGCAGCAGGCGCGTAACGTTCCCAATGCTCGTGTGAGTGATGACGTAATGGAATATAACTATACCTCTTGTGGACAAGTGTGGTTCATGAGGACAAGTCT"},{"id":"Lycogala_olearium_CWP3658_rg05","marker":"nucSSU","genus":"Lycogala","species":"olearium","ribotype":"rg05","specimen":"CWP3658","outgroup":true,"length":684,"seq":"CTGCCAGAATTCATATGCTTGTCCCGAAGACTCAAGCCATGCATGCCTATAAGAAAAAATGGTGCCGGCCGGGCTTATGGTCTGGTCTGGTACTGAAGAATCAGCGAACGGCTCCGCATATCTGTTGCTTCCTATCGCGGTTAATCCGGCATGGATATAGCATGGAAAAGCTGTGTGTAATACACCCAATCGGGGCCAGACTGAGGGCCGCCTAGACAAGGGCCCCAGCAAAAAAGGACCCTGGCACGATGGATCCTGCCCCATTAACAGCTCCCATAGTACTTCGGCCGAGGATGAGCCTTCTCAGGCACGGACAGTCAGGCCCTAGGAAACGGAGGCCTCCGCGATCCCCGGTAAGCCCCTCCTCGACTCGGCTCCCACGTCTGGGCTGGGCAGGCTTGTATCCAGGGTACAGCAGAGACTAACCACAAGCGCGCGAAGGGCTTCAGACCTATCAGCTTGATGGCAGGGTATTGGCCTGCCATGGCTATGACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTAGCCTGAGAAATCGCTCCCACTTCTAAGGAAGGCAGCAGGCGCGTAACGTTCCCAATGCTTGTATATTAGTTGTCCAGCGAGTGAGGACGTAATGGGATATAACAATGCCCATCACTATAGAGTGAGGTAATTGCCGATGGAGTGGGCCCAAACA"},{"id":"Lycogala_leopardinum_IY057_rg11","marker":"nucSSU","genus":"Lycogala","species":"leopardinum","ribotype":"rg11","specimen":"IY057","outgroup":true,"length":675,"seq":"CTGCCAGAATTCATATGCTTGTCCCAAAGATTAAGCCATGCATGCCAAGAGTCCCGTGGCCGGCCGGGCTTCCGCCCGGACCGGCCCTTGAATCAGCGAACGGCTCCGTATATCTGTTGTAACCTGTCGCGGTAAGTACGGTGTGGATATAGCACGGAAAAGCTGTGTGTAAAACAGCAAAAATGGGCCCAGCTTGCAGGGGCAGCTACCCTGGGCGCTTGCGGGTGGGGGGCTCCGGCCACAAAGCTTAACCCCCCTCCCCGGCCTTTAACTCCTCAAGTAGCACGGAGACCCGTCCGCAGTTTGGCTGGCCCAACTGGTCCGGCGGTTTGGTGCGAAACGGGGGCCTCTACGCTGTGACTGAGCCGCGGAACCCGTCTCCTCATGGGGGGGCGGCGAAAGGGGTGAGGGCACTATGATAGAGACCAACCACGAGCGCGCGATGGGCTTCAGACCTATCAGCTAGACGGTAGGGTATTGGCCTACCGTGGCTACGACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTAGCCTGAGAAATCGCTCCCACTTCTAAGGAAGGCAGCAGGCGCGTAACGTTCCCAATGCTCTACCGAGTGAGGACGTGACGGGACATAATAATGCCCCTTCAAGAGTGATGTGGGTAGCCCTCAATGGGGCGGGCTTAAACC"},{"id":"Lycogala_rubrosporum_MCCNNU3695_rg53","marker":"nucSSU","genus":"Lycogala","species":"rubrosporum","ribotype":"rg53","specimen":"MCCNNU3695","outgroup":true,"length":672,"seq":"CTGCCAGAATTCCATATGCTTGTCCCCACGATTAAGCCATGCATGCCTACGAAAATTCAGCCGACCGACTGTGTGGTCCGTGTCCCGTGAGGGAGGGATTCACCGACTGGGAGGCCGATGACTCAGCGAACGGCTCCGTATATCTGTTGTTACCTGTCGTGGCAAATTTGGCGTGGATAACCACGGAAAATCTGTGGGTAAAACAGCCAAATGGGGCACAGTGCCTGGCGGCTTAGTAAGCCGTTCGGGCTTAAGCGGCCCCATGACCCTAAAGGCATGGGGCCCGCCTCGCAAATCGCTCCCAAAGTAGCGGCCTCCCGGCTTAACTGGGGCTCAAAGGCCGTGAAACGGAGGCCTCTGCGGCCCGGAGTGCCCCCCAGCTGATTTTTTCGGCCAGGTGCCCGGGCGTTTATGCAGAGACTAACCGAAAGCGCACGATGGGCTTCAGACCTATCAGCTAGTTGGTAGGGTATTGGCCTACCAAGGCGATGACGGGTACAGAGGATTAGGGTTTGATCCTGGAGAGGTAGCCTGAGAAATCGCTCCCACTTCTAAGGAAGGCAGCAGGCGCGGAACGTTCCCAATGCCGGCCGGCCGGTGAGGACGCGATGGGATATAACAATGCCCCCAAAAAAATTTGGCGGGTAATTGCCAATGGCCCGGGCATAAATC"}],"mtSSU":[{"id":"Reticularia_splendens_rt1_CWU-R0061","marker":"mtSSU","genus":"Reticularia","species":"splendens","ribotype":"rt1","specimen":"CWU-R0061","outgroup":false,"length":395,"seq":"CGTGATGACTGGGCGTAAAGGGTGGTAGGTTGTGGTGCAATGTTATAATTGAAAGACTGGTCAAAAAGCTTTGATTATGGTTATTTCGTACGCCACTAGAGTTTTGGTAAAGGTTGGAGGGACTTGCCAGGGAGAGGTGAAATGTGTAGATCTGCCGGGGACGACGTTGCGAAAGCATCACCTATTCTTTAACTGACGTGAGGCACGAAGGTATGAGTATCGAGCTGGATTAGAGACCCAAGTAGTTCATACTGTAAACGCTGATGGTTAAAGTTAGTGGTCCTAAAATTTAAACCGAAAAAAAAAGGTTTACATGAATGATGATTGTGGCTTTCTAGCTAACGCGCTAAACCATCCGCCTGAGTTGTAGGCCGCAAGGCTAAAACCCAAAGGAA"},{"id":"Reticularia_splendens_rt1_CWU-R0153","marker":"mtSSU","genus":"Reticularia","species":"splendens","ribotype":"rt1","specimen":"CWU-R0153","outgroup":false,"length":395,"seq":"CGTGATGACTGGGCGTAAAGGGTGGTAGGTTGTGGTGCAATGTTATAATTGAAAGACTGGTCAAAAAGCTTTGATTATGGTTATTTCGTACGCCACTAGAGTTTTGGTAAAGGTTGGAGGGACTTGCCAGGGAGAGGTGAAATGTGTAGATCTGCCGGGGACGACGTTGCGAAAGCATCACCTATTCTTTAACTGACGTGAGGCACGAAGGTATGAGTATCGAGCTGGATTAGAGACCCAAGTAGTTCATACTGTAAACGCTGATGGTTAAAGTTAGTGGTCCTAAAATTTAAACCGAAAAAAAAAGGTTTACATGAATGATGATTGTGGCTTTCTAGCTAACGCGCTAAACCATCCGCCTGAGTTGTAGGCCGCAAGGCTAAAACCCAAAGGAA"},{"id":"Reticularia_splendens_rt1_LE259254","marker":"mtSSU","genus":"Reticularia","species":"splendens","ribotype":"rt1","specimen":"LE259254","outgroup":false,"length":395,"seq":"CGTGATGACTGGGCGTAAAGGGTGGTAGGTTGTGGTGCAATGTTATAATTGAAAGACTGGTCAAAAAGCTTTGATTATGGTTATTTCGTACGCCACTAGAGTTTTGGTAAAGGTTGGAGGGACTTGCCAGGGAGAGGTGAAATGTGTAGATCTGCCGGGGACGACGTTGCGAAAGCATCACCTATTCTTTAACTGACGTGAGGCACGAAGGTATGAGTATCGAGCTGGATTAGAGACCCAAGTAGTTCATACTGTAAACGCTGATGGTTAAAGTTAGTGGTCCTAAAATTTAAACCGAAAAAAAAAGGTTTACATGAATGATGATTGTGGCTTTCTAGCTAACGCGCTAAACCATCCGCCTGAGTTGTAGGCCGCAAGGCTAAAACCCAAAGGAA"},{"id":"Reticularia_splendens_rt1_TNSM11758","marker":"mtSSU","genus":"Reticularia","species":"splendens","ribotype":"rt1","specimen":"TNSM11758","outgroup":false,"length":395,"seq":"CGTGATGACTGGGCGTAAAGGGTGGTAGGTTGTGGTGCAATGTTATAATTGAAAGACTGGTCAAAAAGCTTTGATTATGGTTATTTCGTACGCCACTAGAGTTTTGGTAAAGGTTGGAGGGACTTGCCAGGGAGAGGTGAAATGTGTAGATCTGCCGGGGACGACGTTGCGAAAGCATCACCTATTCTTTAACTGACGTGAGGCACGAAGGTATGAGTATCGAGCTGGATTAGAGACCCAAGTAGTTCATACTGTAAACGCTGATGGTTAAAGTTAGTGGTCCTAAAATTTAAACCGAAAAAAAAAGGTTTACATGAATGATGATTGTGGCTTTCTAGCTAACGCGCTAAACCATCCGCCTGAGTTGTAGGCCGCAAGGCTAAAACCCAAAGGAA"},{"id":"Reticularia_splendens_rt1_TNSM12856","marker":"mtSSU","genus":"Reticularia","species":"splendens","ribotype":"rt1","specimen":"TNSM12856","outgroup":false,"length":395,"seq":"CGTGATGACTGGGCGTAAAGGGTGGTAGGTTGTGGTGCAATGTTATAATTGAAAGACTGGTCAAAAAGCTTTGATTATGGTTATTTCGTACGCCACTAGAGTTTTGGTAAAGGTTGGAGGGACTTGCCAGGGAGAGGTGAAATGTGTAGATCTGCCGGGGACGACGTTGCGAAAGCATCACCTATTCTTTAACTGACGTGAGGCACGAAGGTATGAGTATCGAGCTGGATTAGAGACCCAAGTAGTTCATACTGTAAACGCTGATGGTTAAAGTTAGTGGTCCTAAAATTTAAACCGAAAAAAAAAGGTTTACATGAATGATGATTGTGGCTTTCTAGCTAACGCGCTAAACCATCCGCCTGAGTTGTAGGCCGCAAGGCTAAAACCCAAAGGAA"},{"id":"Reticularia_splendens_rt1_TNSM12919","marker":"mtSSU","genus":"Reticularia","species":"splendens","ribotype":"rt1","specimen":"TNSM12919","outgroup":false,"length":395,"seq":"CGTGATGACTGGGCGTAAAGGGTGGTAGGTTGTGGTGCAATGTTATAATTGAAAGACTGGTCAAAAAGCTTTGATTATGGTTATTTCGTACGCCACTAGAGTTTTGGTAAAGGTTGGAGGGACTTGCCAGGGAGAGGTGAAATGTGTAGATCTGCCGGGGACGACGTTGCGAAAGCATCACCTATTCTTTAACTGACGTGAGGCACGAAGGTATGAGTATCGAGCTGGATTAGAGACCCAAGTAGTTCATACTGTAAACGCTGATGGTTAAAGTTAGTGGTCCTAAAATTTAAACCGAAAAAAAAAGGTTTACATGAATGATGATTGTGGCTTTCTAGCTAACGCGCTAAACCATCCGCCTGAGTTGTAGGCCGCAAGGCTAAAACCCAAAGGAA"},{"id":"Reticularia_splendens_rt1_TNSM13345","marker":"mtSSU","genus":"Reticularia","species":"splendens","ribotype":"rt1","specimen":"TNSM13345","outgroup":false,"length":395,"seq":"CGTGATGACTGGGCGTAAAGGGTGGTAGGTTGTGGTGCAATGTTATAATTGAAAGACTGGTCAAAAAGCTTTGATTATGGTTATTTCGTACGCCACTAGAGTTTTGGTAAAGGTTGGAGGGACTTGCCAGGGAGAGGTGAAATGTGTAGATCTGCCGGGGACGACGTTGCGAAAGCATCACCTATTCTTTAACTGACGTGAGGCACGAAGGTATGAGTATCGAGCTGGATTAGAGACCCAAGTAGTTCATACTGTAAACGCTGATGGTTAAAGTTAGTGGTCCTAAAATTTAAACCGAAAAAAAAAGGTTTACATGAATGATGATTGTGGCTTTCTAGCTAACGCGCTAAACCATCCGCCTGAGTTGTAGGCCGCAAGGCTAAAACCCAAAGGAA"},{"id":"Reticularia_splendens_rt3_TNSM13048","marker":"mtSSU","genus":"Reticularia","species":"splendens","ribotype":"rt3","specimen":"TNSM13048","outgroup":false,"length":396,"seq":"CGTGATGACTGGGCGTAAAGGGTGGTAGGTTGTAGTGTTCAGTTATAATTGAAAGACTGGTCAAAAAGCTTTGATTATGGTTATTTCAAACACTACTAGAGTTTTGGTAAAGGTAGGAGGGACTTGCCAGGGAGAGGTGAAATGTGTAGATCTGCCGGGGACGTCATTGCGAAAGCATCACCTAATCTTTAACTGACGTGAGGCACGAAAGTATGAGTATCGAGATGGATTAGAGACCCAAGTAGTTCATACTGTAAACGCTGATGGTTAAAGTTAGTAGTCCGTCAATTTAAACTAATAAAAGAAAGGTTTATATTTATGATGATTATGGTTTTCTAGCTAACGCGCTAAACCATCCGCCTGAGTTGTAGGCCGCAAGGCTAAAACCCAAAGGAA"},{"id":"Reticularia_jurana_rt1_CWU-R0009","marker":"mtSSU","genus":"Reticularia","species":"jurana","ribotype":"rt1","specimen":"CWU-R0009","outgroup":false,"length":415,"seq":"CGTGATGACTGGGCGTAAAGGGTGGTAGGTTGTAGGGTTTATGTTATAATTGAAAGACTGGTCAAAAAGCTTTGCTGAAGGTTATTTTAAACGCTACTAGAGTTTTGGTAGGGGTTAGGAGGGACTTGCCAGGGAGACGTGAAATGTGTAGATCTGCCGGGGACGTCATTGCGAAAGCATCACCCATTCTTTAACTGACATGAGGCACGAAGGTATGAGTATCGAGCTGGATTAGAGACCCAAGTAGTTCATACGGTAAACGCTGATGGTTAAAGTTAGTGATCCAAAAACTTATATTTTTGTATAAGTAAGAGCTTAAAAAACGAAGCTCGTAGATTTGATGATTGTGGCTTTCTAGCTAACGCGCTAAACCATCCGCCTGAGTTGTAGGCCGCAAGGCTAAAACCCAAAGGAA"},{"id":"Reticularia_jurana_rt1_CWU-R0096","marker":"mtSSU","genus":"Reticularia","species":"jurana","ribotype":"rt1","specimen":"CWU-R0096","outgroup":false,"length":415,"seq":"CGTGATGACTGGGCGTAAAGGGTGGTAGGTTGTAGGGTTTATGTTATAATTGAAAGACTGGTCAAAAAGCTTTGCTGAAGGTTATTTTAAACGCTACTAGAGTTTTGGTAGGGGTTAGGAGGGACTTGCCAGGGAGACGTGAAATGTGTAGATCTGCCGGGGACGTCATTGCGAAAGCATCACCCATTCTTTAACTGACATGAGGCACGAAGGTATGAGTATCGAGCTGGATTAGAGACCCAAGTAGTTCATACGGTAAACGCTGATGGTTAAAGTTAGTGATCCAAAAACTTATATTTTTGTATAAGTAAGAGCTTAAAAAACGAAGCTCGTAGATTTGATGATTGTGGCTTTCTAGCTAACGCGCTAAACCATCCGCCTGAGTTGTAGGCCGCAAGGCTAAAACCCAAAGGAA"},{"id":"Reticularia_jurana_rt1_MA83010","marker":"mtSSU","genus":"Reticularia","species":"jurana","ribotype":"rt1","specimen":"MA83010","outgroup":false,"length":403,"seq":"GCGTAAAGGGTGGTAGGTTGTAGGGTTTATGTTATAATTGAAAGACTGGTCAAAAAGCTTTGCTGAAGGTTATTTTAAACGCTACTAGAGTTTTGGTAGGGGTTAGGAGGGACTTGCCAGGGAGACGTGAAATGTGTAGATCTGCCGGGGACGTCATTGCGAAAGCATCACCCATTCTTTAACTGACATGAGGCACGAAGGTATGAGTATCGAGCTGGATTAGAGACCCAAGTAGTTCATACGGTAAACGCTGATGGTTAAAGTTAGTGATCCAAAAACTTATATTTTTGTATAAGTAAGAGCTTAAAAAACGAAGCTCGTAGATTTGATGATTGTGGCTTTCTAGCTAACGCGCTAAACCATCCGCCTGAGTTGTAGGCCGCAAGGCTAAAACCCAAAGGAA"},{"id":"Reticularia_jurana_rt1_MA83011","marker":"mtSSU","genus":"Reticularia","species":"jurana","ribotype":"rt1","specimen":"MA83011","outgroup":false,"length":403,"seq":"GCGTAAAGGGTGGTAGGTTGTAGGGTTTATGTTATAATTGAAAGACTGGTCAAAAAGCTTTGCTGAAGGTTATTTTAAACGCTACTAGAGTTTTGGTAGGGGTTAGGAGGGACTTGCCAGGGAGACGTGAAATGTGTAGATCTGCCGGGGACGTCATTGCGAAAGCATCACCCATTCTTTAACTGACATGAGGCACGAAGGTATGAGTATCGAGCTGGATTAGAGACCCAAGTAGTTCATACGGTAAACGCTGATGGTTAAAGTTAGTGATCCAAAAACTTATATTTTTGTATAAGTAAGAGCTTAAAAAACGAAGCTCGTAGATTTGATGATTGTGGCTTTCTAGCTAACGCGCTAAACCATCCGCCTGAGTTGTAGGCCGCAAGGCTAAAACCCAAAGGAA"},{"id":"Reticularia_jurana_rt1_MA83274","marker":"mtSSU","genus":"Reticularia","species":"jurana","ribotype":"rt1","specimen":"MA83274","outgroup":false,"length":403,"seq":"GCGTAAAGGGTGGTAGGTTGTAGGGTTTATGTTATAATTGAAAGACTGGTCAAAAAGCTTTGCTGAAGGTTATTTTAAACGCTACTAGAGTTTTGGTAGGGGTTAGGAGGGACTTGCCAGGGAGACGTGAAATGTGTAGATCTGCCGGGGACGTCATTGCGAAAGCATCACCCATTCTTTAACTGACATGAGGCACGAAGGTATGAGTATCGAGCTGGATTAGAGACCCAAGTAGTTCATACGGTAAACGCTGATGGTTAAAGTTAGTGATCCAAAAACTTATATTTTTGTATAAGTAAGAGCTTAAAAAACGAAGCTCGTAGATTTGATGATTGTGGCTTTCTAGCTAACGCGCTAAACCATCCGCCTGAGTTGTAGGCCGCAAGGCTAAAACCCAAAGGAA"},{"id":"Reticularia_jurana_rt1_MSK-F43254","marker":"mtSSU","genus":"Reticularia","species":"jurana","ribotype":"rt1","specimen":"MSK-F43254","outgroup":false,"length":415,"seq":"CGTGATGACTGGGCGTAAAGGGTGGTAGGTTGTAGGGTTTATGTTATAATTGAAAGACTGGTCAAAAAGCTTTGCTGAAGGTTATTTTAAACGCTACTAGAGTTTTGGTAGGGGTTAGGAGGGACTTGCCAGGGAGACGTGAAATGTGTAGATCTGCCGGGGACGTCATTGCGAAAGCATCACCCATTCTTTAACTGACATGAGGCACGAAGGTATGAGTATCGAGCTGGATTAGAGACCCAAGTAGTTCATACGGTAAACGCTGATGGTTAAAGTTAGTGATCCAAAAACTTATATTTTTGTATAAGTAAGAGCTTAAAAAACGAAGCTCGTAGATTTGATGATTGTGGCTTTCTAGCTAACGCGCTAAACCATCCGCCTGAGTTGTAGGCCGCAAGGCTAAAACCCAAAGGAA"},{"id":"Reticularia_jurana_rt1_sc32539","marker":"mtSSU","genus":"Reticularia","species":"jurana","ribotype":"rt1","specimen":"sc32539","outgroup":false,"length":415,"seq":"CGTGATGACTGGGCGTAAAGGGTGGTAGGTTGTAGGGTTTATGTTATAATTGAAAGACTGGTCAAAAAGCTTTGCTGAAGGTTATTTTAAACGCTACTAGAGTTTTGGTAGGGGTTAGGAGGGACTTGCCAGGGAGACGTGAAATGTGTAGATCTGCCGGGGACGTCATTGCGAAAGCATCACCCATTCTTTAACTGACATGAGGCACGAAGGTATGAGTATCGAGCTGGATTAGAGACCCAAGTAGTTCATACGGTAAACGCTGATGGTTAAAGTTAGTGATCCAAAAACTTATATTTTTGTATAAGTAAGAGCTTAAAAAACGAAGCTCGTAGATTTGATGATTGTGGCTTTCTAGCTAACGCGCTAAACCATCCGCCTGAGTTGTAGGCCGCAAGGCTAAAACCCAAAGGAA"},{"id":"Reticularia_tasmanica_SJL0071","marker":"mtSSU","genus":"Reticularia","species":"tasmanica","ribotype":null,"specimen":"SJL0071","outgroup":false,"length":394,"seq":"CGTGATGACTGGGCGTAAAGGGTGGTAGGCGGGGGGTGTGATTGTTTGATTTAAATACTGGCAAAGAGGCTTTGAAGGTTAAATGAAACCCCCTAGAGTTTTGGTAAGGGTCGGAGGGACTTGCCAGGGAGACGTGAAATGTGTAGATCTGCCGGGGACGACATTGCGAAAGCATCGCCCAATCTTTAACTGACGTGAGGCACGAAGGTATGAGTATCGAGCTGGATTAGAGACCCAAGTAGTTCATACAGTAAACGCTGATGGTTAATGTTAGTGGTCCACAAAACATAGAACTGACCAAACTGAGTTCATGAAATTGATGATCGTGGCGTTCTAGCTAACGCGCTAAACCATCCGCCTGAGTTGTAGGCCGCAAGGCTAAAACCCAAAGGAA"},{"id":"Reticularia_tasmanica_SJL0244","marker":"mtSSU","genus":"Reticularia","species":"tasmanica","ribotype":null,"specimen":"SJL0244","outgroup":false,"length":394,"seq":"CGTGATGACTGGGCGTAAAGGGTGGTAGGCGGGGGGTGTGATTGTTTGATTTAAATACTGGCAAAGAGGCTTTGAAGGTTAAATGAAACCCCCTAGAGTTTTGGTAAGGGTCGGAGGGACTTGCCAGGGAGACGTGAAATGTGTAGATCTGCCGGGGACGACATTGCGAAAGCATCGCCCAATCTTTAACTGACGTGAGGCACGAAGGTATGAGTATCGAGCTGGATTAGAGACCCAAGTAGTTCATACAGTAAACGCTGATGGTTAATGTTAGTGGTCCACAAAACATAGAACTGACCAAACTGAGTTCATGAAATTGATGATCGTGGCGTTCTAGCTAACGCGCTAAACCATCCGCCTGAGTTGTAGGCCGCAAGGCTAAAACCCAAAGGAA"},{"id":"Reticularia_tasmanica_SJL0353","marker":"mtSSU","genus":"Reticularia","species":"tasmanica","ribotype":null,"specimen":"SJL0353","outgroup":false,"length":394,"seq":"CGTGATGACTGGGCGTAAAGGGTGGTAGGCGGGGGGTGTGATTGTTTGATTTAAATACTGGCAAAGAGGCTTTGAAGGTTAAATGAAACCCCCTAGAGTTTTGGTAAGGGTCGGAGGGACTTGCCAGGGAGACGTGAAATGTGTAGATCTGCCGGGGACGACATTGCGAAAGCATCGCCCAATCTTTAACTGACGTGAGGCACGAAGGTATGAGTATCGAGCTGGATTAGAGACCCAAGTAGTTCATACAGTAAACGCTGATGGTTAATGTTAGTGGTCCACAAAACATAGAACTGACCAAACTGAGTTCATGAAATTGATGATCGTGGCGTTCTAGCTAACGCGCTAAACCATCCGCCTGAGTTGTAGGCCGCAAGGCTAAAACCCAAAGGAA"},{"id":"Reticularia_tasmanica_SJL0809","marker":"mtSSU","genus":"Reticularia","species":"tasmanica","ribotype":null,"specimen":"SJL0809","outgroup":false,"length":394,"seq":"CGTGATGACTGGGCGTAAAGGGTGGTAGGCGGGGGGTGTGATTGTTTGATTTAAATACTGGCAAAGAGGCTTTGAAGGTTAAATGAAACCCCCTAGAGTTTTGGTAAGGGTCGGAGGGACTTGCCAGGGAGACGTGAAATGTGTAGATCTGCCGGGGACGACATTGCGAAAGCATCGCCCAATCTTTAACTGACGTGAGGCACGAAGGTATGAGTATCGAGCTGGATTAGAGACCCAAGTAGTTCATACAGTAAACGCTGATGGTTAATGTTAGTGGTCCACAAAACATAGAACTGACCAAACTGAGTTCATGAAATTGATGATCGTGGCGTTCTAGCTAACGCGCTAAACCATCCGCCTGAGTTGTAGGCCGCAAGGCTAAAACCCAAAGGAA"},{"id":"Reticularia_tasmanica_SJL0818","marker":"mtSSU","genus":"Reticularia","species":"tasmanica","ribotype":null,"specimen":"SJL0818","outgroup":false,"length":394,"seq":"CGTGATGACTGGGCGTAAAGGGTGGTAGGCGGGGGGTGTGATTGTTTGATTTAAATACTGGCAAAGAGGCTTTGAAGGTTAAATGAAACCCCCTAGAGTTTTGGTAAGGGTCGGAGGGACTTGCCAGGGAGACGTGAAATGTGTAGATCTGCCGGGGACGACATTGCGAAAGCATCGCCCAATCTTTAACTGACGTGAGGCACGAAGGTATGAGTATCGAGCTGGATTAGAGACCCAAGTAGTTCATACAGTAAACGCTGATGGTTAATGTTAGTGGTCCACAAAACATAGAACTGACCAAACTGAGTTCATGAAATTGATGATCGTGGCGTTCTAGCTAACGCGCTAAACCATCCGCCTGAGTTGTAGGCCGCAAGGCTAAAACCCAAAGGAA"},{"id":"Reticularia_tasmanica_SJL0832","marker":"mtSSU","genus":"Reticularia","species":"tasmanica","ribotype":null,"specimen":"SJL0832","outgroup":false,"length":394,"seq":"CGTGATGACTGGGCGTAAAGGGTGGTAGGCGGGGGGTGTGATTGTTTGATTTAAATACTGGCAAAGAGGCTTTGAAGGTTAAATGAAACCCCCTAGAGTTTTGGTAAGGGTCGGAGGGACTTGCCAGGGAGACGTGAAATGTGTAGATCTGCCGGGGACGACATTGCGAAAGCATCGCCCAATCTTTAACTGACGTGAGGCACGAAGGTATGAGTATCGAGCTGGATTAGAGACCCAAGTAGTTCATACAGTAAACGCTGATGGTTAATGTTAGTGGTCCACAAAACATAGAACTGACCAAACTGAGTTCATGAAATTGATGATCGTGGCGTTCTAGCTAACGCGCTAAACCATCCGCCTGAGTTGTAGGCCGCAAGGCTAAAACCCAAAGGAA"},{"id":"Reticularia_tasmanica_SJL1632","marker":"mtSSU","genus":"Reticularia","species":"tasmanica","ribotype":null,"specimen":"SJL1632","outgroup":false,"length":394,"seq":"CGTGATGACTGGGCGTAAAGGGTGGTAGGCGGGGGGTGTGATTGTTTGATTTAAATACTGGCAAAGAGGCTTTGAAGGTTAAATGAAACCCCCTAGAGTTTTGGTAAGGGTCGGAGGGACTTGCCAGGGAGACGTGAAATGTGTAGATCTGCCGGGGACGACATTGCGAAAGCATCGCCCAATCTTTAACTGACGTGAGGCACGAAGGTATGAGTATCGAGCTGGATTAGAGACCCAAGTAGTTCATACAGTAAACGCTGATGGTTAATGTTAGTGGTCCACAAAACATAGAACTGACCAAACTGAGTTCATGAAATTGATGATCGTGGCGTTCTAGCTAACGCGCTAAACCATCCGCCTGAGTTGTAGGCCGCAAGGCTAAAACCCAAAGGAA"},{"id":"Reticularia_tasmanica_SJL1783","marker":"mtSSU","genus":"Reticularia","species":"tasmanica","ribotype":null,"specimen":"SJL1783","outgroup":false,"length":394,"seq":"CGTGATGACTGGGCGTAAAGGGTGGTAGGCGGGGGGTGTGATTGTTTGATTTAAATACTGGCAAAGAGGCTTTGAAGGTTAAATGAAACCCCCTAGAGTTTTGGTAAGGGTCGGAGGGACTTGCCAGGGAGACGTGAAATGTGTAGATCTGCCGGGGACGACATTGCGAAAGCATCGCCCAATCTTTAACTGACGTGAGGCACGAAGGTATGAGTATCGAGCTGGATTAGAGACCCAAGTAGTTCATACAGTAAACGCTGATGGTTAATGTTAGTGGTCCACAAAACATAGAACTGACCAAACTGAGTTCATGAAATTGATGATCGTGGCGTTCTAGCTAACGCGCTAAACCATCCGCCTGAGTTGTAGGCCGCAAGGCTAAAACCCAAAGGAA"},{"id":"Reticularia_tasmanica_SJL1788","marker":"mtSSU","genus":"Reticularia","species":"tasmanica","ribotype":null,"specimen":"SJL1788","outgroup":false,"length":394,"seq":"CGTGATGACTGGGCGTAAAGGGTGGTAGGCGGGGGGTGTGATTGTTTGATTTAAATACTGGCAAAGAGGCTTTGAAGGTTAAATGAAACCCCCTAGAGTTTTGGTAAGGGTCGGAGGGACTTGCCAGGGAGACGTGAAATGTGTAGATCTGCCGGGGACGACATTGCGAAAGCATCGCCCAATCTTTAACTGACGTGAGGCACGAAGGTATGAGTATCGAGCTGGATTAGAGACCCAAGTAGTTCATACAGTAAACGCTGATGGTTAATGTTAGTGGTCCACAAAACATAGAACTGACCAAACTGAGTTCATGAAATTGATGATCGTGGCGTTCTAGCTAACGCGCTAAACCATCCGCCTGAGTTGTAGGCCGCAAGGCTAAAACCCAAAGGAA"},{"id":"Reticularia_lycoperdon_rt1b_MSK-F40968","marker":"mtSSU","genus":"Reticularia","species":"lycoperdon","ribotype":"rt1b","specimen":"MSK-F40968","outgroup":false,"length":396,"seq":"CTGATGACTGGGCGTAAAGGGTGGTAGGTTGTGTGGCAGAGGTTTTGACTTAAATGTTGGCAAAAAGGCTTTACGAAGGTTAATTCAGATCCACGCTAGAGTTTTGGAAGGGGTTCGGAGGGAGTTGACAGGGAGACGTGAAAAGTGCAGATCTGTCAGGGACGTCATTGCGAAAGCGTCGCCTATTCTTTAACTGACTTGAGGCACGAAGGTATGAGTATCGAGCTGGATTAGAGACCCAAGTAGTTCATACTGTAAACGATGCTGGTTAAAGTTAGTGATCCTTTTTTGGGCTAACGAAAACGTAAGTCTGTAAAATTGATGATCGTGGTTTTCTAGCTAACGCGTTAAACCAGCCGCCTGAGTTGTAGGCCGCAAGGCTAAAACCCAAAGGAA"},{"id":"Reticularia_lycoperdon_rt2_MSK-F42594","marker":"mtSSU","genus":"Reticularia","species":"lycoperdon","ribotype":"rt2","specimen":"MSK-F42594","outgroup":false,"length":389,"seq":"ACTGGGCGTAAAGGGTGGTAGGTGGCGTGGCAGAGGTTTTGACTTAAATGTTGGCAAAAAGGCTTTACGAAGGTTGATTCAGATCCACGCCAGAGTTTTGGAAAGGGTTCGGAGGGAGTTGACAGGGAGACGTGAAAAGTGCAGATCTGTCAGGGACGTCATTGCGAAAGCGTCGCCTATTCTTTAACTGACGTGAGGCACGAAAGTATGAGTATCGAGCTGGATTAGAGACCCAAGTAGTTCATACTATAAACGATGCTGGTTAAAGTTAGTAATCCTTTTTGGGGCCGATAAAAAGTAGGCTTGTAAAATTGATGATCGTGGCTTTCTAGCTAACGCGTTAAACCAGCCGCCTGAGTTGTAGGCCGCAAGGCTAAAACCCAAAGGAA"},{"id":"Reticularia_lucidula_TNSM12857","marker":"mtSSU","genus":"Reticularia","species":"lucidula","ribotype":null,"specimen":"TNSM12857","outgroup":false,"length":390,"seq":"TCCCCCCCTGTAACGGGTGGTAGGTAGGACCGATGGGAGTTATAACACAAAAAACGGCAAYAACGGTGAATAAAGGTTATTTTTAATCATTTTTTGAGTTTTGGTAAAGGTTGGAGGGACTCACCAGGGAGACGTGAAATGTGCAGATCTGCTGGGGACGTCATTGCGAAAGCATCGCCTATTCTTTAACTGACGTGAGGCACGAAGGTATGAGTATCGAGCTGGATTAGAGACCCAAGTAGTTCATACAGTAAACGCTGATAGTTACCGTTAGCGGTCCTTTTTACACTTACAAAAAGAAGTGGCAACCAATTGAAGACTGTAGCCGTCTAGCTAACGCGCTAAACCATCCGCCTGAGTTGTAGGCCGCAAGGCTAAAACCCAAAGGAA"},{"id":"Reticularia_lucidula_TNSM13338","marker":"mtSSU","genus":"Reticularia","species":"lucidula","ribotype":null,"specimen":"TNSM13338","outgroup":false,"length":390,"seq":"TCCCCCCCTGTAACGGGTGGCAGGTAGGACCGATGGGAGTTATAACACAAAAAACGGCAAYAACGGTGAATAAAGGTTATTTTTAATCATTTTTTGAGTTTTGGTAAAGGTTGGAGGGACTCACCAGGGAGACGTGAAATGTGCAGATCTGCTGGGGACGTCATTGCGAAAGCATCGCCTATTCTTTAACTGACGTGAGGCACGAAGGTATGAGTATCGAGCTGGATTAGAGACCCAAGTAGTTCATACAGTAAACGCTGATAGTTACCGTTAGCGGTCCTTTTTACACTTACAAAAAGAAGTGGCAACCAATTGAAGACTGTAGCCGTCTAGCTAACGCGCTAAACCATCCGCCTGAGTTGTAGGCCGCAAGGCTAAAACCCAAAGGAA"},{"id":"Lycogala_epidendrum_MSK-F43322_rg01b1","marker":"mtSSU","genus":"Lycogala","species":"epidendrum","ribotype":"rg01b1","specimen":"MSK-F43322","outgroup":true,"length":381,"seq":"CGTGATGACTGGGTGTATAGGATAGTAGGTGGTAAGACTAAGGGCTAAAAGAAATACTTTGGGAACMCCGATTTACTTTAGCTACAGATCTTTYTAGAATCTCTCGAGGTATGGGTACTYTACATGTAGACGTAAAATGCGCAGATATGACGAGGACTTCGAAGGCGAAAGCACGTGCGACTAATGATTGACATGAGGTATGAAGGTATGGGTATCGAGCGGGATTAGAGACCCCAGTAGTCCATAAGTAAACGCTGCATATTACTATTGGATACAATAAAAACTTCATTCTATGAAGAAAAAAAAAAGTTCAGTGGTTAGCTAACGCGTTAAATATGCCACCTGGGCAGTAGGCCGCAAGGTAAAACTCAAAAGAATTGA"},{"id":"Lycogala_roseosporum_IY005_rg07","marker":"mtSSU","genus":"Lycogala","species":"roseosporum","ribotype":"rg07","specimen":"IY005","outgroup":true,"length":381,"seq":"CGTGATGACTGGGTGTATAGGATAGTAGGCAGTAAGACTAAGATCTAAAAGAAATGCTTTGGGAACACCGATTCACTTTAGATACAGATCTTTCTAGAATCTCTCGAGGTATGGGTACTCTACATGTAGACGTAAAATGCGCAGATATGACGAGGACTTCTATGGCGAAAGCGCGTGCGACTAAAGATTGACGTGAGGTATGAAGGTATGGGTATCGATCGGGATTAGAGACCCCAGTAGTCCATAAGTAAACACTGCATATTACTGTTGGAAAAAGTAAAAAGCTTTTTAACAGAAAGCTTTTTACTTTTCAGCGGTTAGCTAACGCGTTAAATATGCCACCTGGGCAGTAGGCCGCAAGGTAAAACTCAAAAGAATTGA"},{"id":"Lycogala_olearium_CWP3658_rg05","marker":"mtSSU","genus":"Lycogala","species":"olearium","ribotype":"rg05","specimen":"CWP3658","outgroup":true,"length":384,"seq":"CGTGATGACTGGGTGTATAAGATAGTAGGTAGTAAGACTAAGGTTTAAAGAAAAAGCTTTGGGAGTACCGATTCCTTTTTAAACACAGATCTTTCTAGAATCTGTCGAGATGCGGGTACTCAACATGTAGACGTTAAATGCGCAGATATGACGAGGACTTCTATGGCGAAAGCACGCATCGATTAAAGATTGACATGAGGTATGAAGGTATGGGTATCGATCGGGATTAGAGACCCCAGTAGTCCATAAGTAAACGCTGCATATTACTGTTGGATAAATATAAAACTTTTTTTTAAGAAGTTTTTTTTTAATTCAGCGGTTAGCTAACGCGTTAAATATGCTACCTGGGCAGTACGGCCGCAAGGTAAAACTCAAAAGAATTGA"},{"id":"Lycogala_leopardinum_IY057_rg11","marker":"mtSSU","genus":"Lycogala","species":"leopardinum","ribotype":"rg11","specimen":"IY057","outgroup":true,"length":382,"seq":"CGTGATGACTGGGTGTATAGGATAGTAGGCAGTAAGACAAAGATCTGAAAAAAATACTTTGGGAACACCGATTTACTTTTAGATACTGATCTTTCTAGGATCTCTCGAGATATGGGTACTCAACATGTAGACGTAAAATGTGTAGATATGACGAGGACTTCGATGGCGAAAGCACGTATGACTAAGGATCAACGTGAGGTATGAAGGTATGGGTATCGATCGGGATTAGAGACCCCAGTAGTCCATAAGTAAACGCTGCAAATTATTATTGGATAAAACAAAAATAGCATTTTTTGCCTTTTTTTGTTGTTTCAGTGGTTAGCTAACGCGTTAAATTTGCCACCTGGGCAGTAGGCCGCAAGGTAAAACTCAAAAGAATTGA"},{"id":"Lycogala_rubrosporum_MCCNNU3695_rg53","marker":"mtSSU","genus":"Lycogala","species":"rubrosporum","ribotype":"rg53","specimen":"MCCNNU3695","outgroup":true,"length":382,"seq":"CGTGATGACTGGGTGTATAGGATAGTAGGCAGTAAGACTAAGATCTAAAAAAAATGCTTTGGGAACACCGATTCTTTTTAGATACAGATCTTTCTAGAATTTCTCGAGTTATGGGTACTCAACAGGTAGATGTAAAATGCGCAGATCTGACGATGACTTCGAAAGCGAAAGCACGTAAGATTAAAAATTGACGCTGAGGTATGAAGGTGTGGGTATCGATCGGGATTAGAGACCCCAGTAGTCCACAGGTAAACGCTGCATTTTACTATTAGATGATACTAAACCTTGATTTTATTAATCAAGAAAGTAATTTTAGTGGTTAGCTAACGCGTAAATATGCCACTGGGCAGTACGGCCGCAAGGTAAAACTCAAAAGAATTGA"}]},"seqStats":{"nucSSU":{"refs":45,"n":45,"speciesOk":45,"ribN":22,"ribOk":16,"tN":45,"tOk":45},"mtSSU":{"refs":28,"n":28,"speciesOk":28,"ribN":17,"ribOk":14,"tN":28,"tOk":28}}};</script>
+<script>
+// 判定エンジン（DOM非依存・決定論的）
+// 設計:
+//  1) 種ごとに形質を照合し、hard mismatch のある候補を除外する（eliminates フラグ + モード）。
+//  2) 記載のない形質は「中立」。除外にも支持にも使わない（空欄の誤用防止）。
+//  3) 生存候補を支持形質の重みで並べる。同点は tie として明示する。
+//  4) 「次に観るべき1形質」を情報利得（分割の均等さ × 信頼度 ÷ 観察コスト）で選ぶ。
+//  5) 推定（inferred）・係争中（contested）のセルは、食い違っても除外に使わない（警告と減点のみ）。
+
+const RELIABILITY_WEIGHT = { high: 3, med: 2, low: 1 };
+const LEVEL_COST = { 1: 1, 2: 1.5, 3: 2 };
+const LEVEL_LABEL = { 1: '肉眼・ルーペ', 2: '実体顕微鏡', 3: '光学顕微鏡＋染色' };
+
+// 根拠の弱いセルで候補を消すと、推定を事実として扱うことになる。
+function isUncertainCell(cell) {
+  return !!(cell && (cell.inferred || cell.contested));
+}
+
+function stateIndex(ch) {
+  const m = {};
+  (ch.states || []).forEach((s, i) => { m[s.id] = i; });
+  return m;
+}
+
+function evalChar(ch, obsVal, cell, tol) {
+  const hasStates = cell && Array.isArray(cell.states);
+  const hasRange = cell && (Array.isArray(cell.range) || Array.isArray(cell.ranges));
+  if (!hasStates && !hasRange) return { status: 'nodata' };
+  const unobserved = obsVal === undefined || obsVal === null ||
+    (Array.isArray(obsVal) && obsVal.length === 0) || obsVal === '';
+  if (unobserved) return { status: 'unobserved' };
+
+  if (ch.type === 'num') {
+    const specs = cell.ranges || (cell.range ? [{ range: cell.range }] : []);
+    if (!specs.length) return { status: 'nodata' };
+    const v = Number(obsVal);
+    if (Number.isNaN(v)) return { status: 'unobserved' };
+    const t = tol == null ? 0 : tol;
+    const hit = specs.some((s) => v >= s.range[0] - t && v <= s.range[1] + t);
+    if (hit) return { status: 'compatible' };
+    const d = Math.min.apply(null, specs.map((s) => {
+      if (v < s.range[0]) return s.range[0] - v;
+      if (v > s.range[1]) return v - s.range[1];
+      return 0;
+    }));
+    return {
+      status: d <= 2 * t ? 'near' : 'mismatch',
+      detail: `観察 ${v}${ch.unit || ''} ／ 記載 ${specs.map((s) => s.range[0] + '–' + s.range[1]).join(' / ')}${ch.unit || ''}`
+    };
+  }
+
+  const allowed = cell.states;
+  if (!allowed.length) return { status: 'nodata' };
+  const o = Array.isArray(obsVal) ? obsVal : [obsVal];
+  if (o.some((s) => allowed.indexOf(s) >= 0)) return { status: 'compatible' };
+
+  // 2値の順序尺度には「隣接」がない（low/high は連続量ではなく二分）。
+  if (ch.ordinal && (ch.states || []).length >= 3) {
+    const idx = stateIndex(ch);
+    let best = 99;
+    o.forEach((s) => allowed.forEach((a) => {
+      if (idx[s] != null && idx[a] != null) best = Math.min(best, Math.abs(idx[s] - idx[a]));
+    }));
+    if (best === 1) return { status: 'near', detail: '隣接する状態' };
+  }
+  return {
+    status: 'mismatch',
+    detail: `観察 ${o.join(' / ')} ／ 記載 ${allowed.join(' / ')}`
+  };
+}
+
+function labelFor(ch, id) {
+  const s = (ch.states || []).find((x) => x.id === id);
+  return s ? s.label : id;
+}
+function shortFor(ch, id) {
+  const s = (ch.states || []).find((x) => x.id === id);
+  return s ? (s.short || s.label) : id;
+}
+function cellLabel(ch, cell) {
+  if (!cell) return '';
+  if (Array.isArray(cell.ranges)) {
+    return cell.ranges.map((r) => r.label || ((r.range[0] + '–' + r.range[1]) + (ch.unit || ''))).join(' ／ ');
+  }
+  if (Array.isArray(cell.range)) return `${cell.range[0]}–${cell.range[1]}${ch.unit || ''}`;
+  return (cell.states || []).map((id) => shortFor(ch, id)).join(' / ');
+}
+
+function evaluate(data, obs, opts) {
+  const o = opts || {};
+  const mode = o.mode || 'standard';
+  const maxLevel = o.maxLevel == null ? 3 : o.maxLevel;
+  const chars = data.characters.filter((c) => c.level <= maxLevel);
+  const region = obs.region;
+
+  const rows = data.taxa.map((t) => {
+    let support = 0, near = 0, contra = 0;
+    const used = [], nears = [], contradictions = [];
+    let observedCount = 0;
+
+    chars.forEach((ch) => {
+      const cell = t.chars ? t.chars[ch.id] : undefined;
+      const r = evalChar(ch, obs[ch.id], cell, ch.type === 'num' ? ch.tolerance : 0);
+      if (r.status === 'compatible') {
+        observedCount += 1;
+        support += RELIABILITY_WEIGHT[ch.reliability] || 1;
+        used.push({ ch, r, cell });
+      } else if (r.status === 'near') {
+        near += (RELIABILITY_WEIGHT[ch.reliability] || 1) * 0.5;
+        nears.push({ ch, r, cell });
+      } else if (r.status === 'mismatch') {
+        contra += RELIABILITY_WEIGHT[ch.reliability] || 1;
+        contradictions.push({ ch, r, cell });
+      }
+    });
+
+    const firm = contradictions.filter((x) => !isUncertainCell(x.cell));
+    const softened = contradictions.filter((x) => isUncertainCell(x.cell));
+    const hard = firm.filter((x) => x.ch.eliminates);
+    let eliminated = false;
+    if (mode === 'strict') eliminated = firm.length > 0;
+    else if (mode === 'lenient') eliminated = false;
+    else eliminated = hard.length > 0;
+
+    const warnings = [];
+    if (softened.length && !eliminated) {
+      warnings.push({
+        kind: 'uncertain',
+        text: `${softened.map((x) => x.ch.label.split('（')[0]).join('、')}が観察と食い違うが、この種のセルは推定・係争中なので除外していない。`
+      });
+    }
+    if (t.distribution && region && region !== 'other' && t.distribution.indexOf(region) < 0) {
+      warnings.push({
+        kind: 'distribution',
+        text: `論文記載の分布外（${t.distributionSrc}）。ただし分類の改訂で分布が広がる可能性がある。`
+      });
+    }
+    if (observedCount === 0 && !eliminated) {
+      warnings.push({
+        kind: 'noevidence',
+        text: 'この候補には照合できる観察がありません（根拠不足）。'
+      });
+    }
+
+    return {
+      taxon: t,
+      support, near, contra,
+      used, nears, contradictions,
+      eliminated,
+      hardKilled: hard.length > 0,
+      observedCount,
+      warnings
+    };
+  });
+
+  const survivors = rows
+    .filter((r) => !r.eliminated)
+    .sort((a, b) => (b.support - b.contra * 2) - (a.support - a.contra * 2) || b.support - a.support || a.taxon.name.localeCompare(b.taxon.name));
+  const eliminated = rows.filter((r) => r.eliminated)
+    .sort((a, b) => a.taxon.name.localeCompare(b.taxon.name));
+
+  // 根拠のある候補（支持か近似の観察がある）と、記載不足で判定できない候補を分ける。
+  const strong = survivors.filter((s) => s.observedCount > 0 || s.nears.length > 0);
+  const weak = survivors.filter((s) => !(s.observedCount > 0 || s.nears.length > 0));
+
+  const tie = strong.length > 1 &&
+    (strong[0].support - strong[0].contra * 2) === (strong[1].support - strong[1].contra * 2);
+
+  // 全体警告
+  const globalWarnings = [];
+  const basis = strong.length ? strong : survivors;
+  // 未記載系統：根拠のある候補に該当種が1つでも残っていれば警告する。形態では区別できない
+  // ことが要点なので、出し漏れを避ける。産地は絞り込みに使わず、参考として添える。
+  if (strong.length) {
+    const ids = strong.map((s) => s.taxon.id);
+    (data.shadowTaxa || []).forEach((s) => {
+      const triggeredBy = ids.filter((id) => s.appliesTo.indexOf(id) >= 0);
+      if (!triggeredBy.length) return;
+      const regionMatch = (!region || region === 'other' || !s.knownRegions) ? null : s.knownRegions.indexOf(region) >= 0;
+      globalWarnings.push({
+        kind: 'shadow', id: s.id, label: s.label, text: s.note,
+        triggeredBy, regionNote: s.regionNote || null, regionMatch
+      });
+    });
+  }
+  const levelExcluded = data.characters.some((c) => c.level > maxLevel && obs[c.id] !== undefined);
+  if (levelExcluded) {
+    globalWarnings.push({
+      kind: 'level',
+      text: '選択した観察レベルより上の形質に入力があります。その入力は判定から除外しています。'
+    });
+  }
+
+  const next = suggestNext(data, obs, basis, maxLevel);
+
+  return {
+    survivors, strong, weak, eliminated, rows, tie, next, globalWarnings, mode, maxLevel,
+    observedChars: chars.filter((c) => obs[c.id] !== undefined).length,
+    totalChars: chars.length
+  };
+}
+
+function signatureOf(cell) {
+  if (!cell) return null;
+  if (Array.isArray(cell.ranges)) return 'n:' + cell.ranges.map((x) => x.range.join('-')).join(',');
+  if (Array.isArray(cell.range)) return 'n:' + cell.range.join('-');
+  return (cell.states || []).slice().sort().join('|');
+}
+
+function suggestNext(data, obs, survivors, maxLevel) {
+  const cands = survivors.filter((s) => !s.eliminated);
+  if (!cands.length) return null;
+
+  if (cands.length === 1) {
+    let best = null;
+    data.characters.forEach((ch) => {
+      if (ch.level > maxLevel || obs[ch.id] !== undefined) return;
+      if (!ch.eliminates) return; // 除外に使えない形質で「外れます」とは言えない
+      const cell = cands[0].taxon.chars[ch.id];
+      if (!cell) return;
+      if (cell.states && cell.states.length === (ch.states || []).length) return;
+      const w = RELIABILITY_WEIGHT[ch.reliability] || 1;
+      const cost = LEVEL_COST[ch.level] || 1;
+      const score = (w * w) / cost;
+      if (!best || score > best.score) {
+        best = { charId: ch.id, ch, score, kind: 'refute', groups: [] };
+      }
+    });
+    return best;
+  }
+
+  let best = null;
+  data.characters.forEach((ch) => {
+    if (ch.level > maxLevel || obs[ch.id] !== undefined) return;
+
+    // 連続量は「範囲の重なり」で判別力を判断する。範囲が重複している形質を
+    // 聞いても候補は絞れないので、提案しない（胞子径・着合子嚢体サイズがこれに当たる）。
+    if (ch.type === 'num') {
+      const ranges = cands
+        .map((s) => s.taxon.chars[ch.id])
+        .filter((c) => c && (Array.isArray(c.range) || Array.isArray(c.ranges)))
+        .map((c) => c.range || [
+          Math.min.apply(null, c.ranges.map((r) => r.range[0])),
+          Math.max.apply(null, c.ranges.map((r) => r.range[1]))
+        ]);
+      if (ranges.length < 2) return;
+      for (let i = 0; i < ranges.length; i += 1) {
+        for (let j = i + 1; j < ranges.length; j += 1) {
+          const a = ranges[i], b = ranges[j];
+          if (!(a[1] < b[0] || b[1] < a[0])) return; // 重複あり → 提案しない
+        }
+      }
+    }
+
+    const groups = new Map();
+    let withData = 0;
+    cands.forEach((s) => {
+      const sig = signatureOf(s.taxon.chars[ch.id]);
+      if (sig === null) return;
+      withData += 1;
+      if (!groups.has(sig)) groups.set(sig, []);
+      groups.get(sig).push(s.taxon.name);
+    });
+    if (groups.size < 2 || withData < 2) return;
+    let purity = 0;
+    groups.forEach((g) => { const p = g.length / withData; purity += p * p; });
+    const gain = 1 - purity;
+    const w = RELIABILITY_WEIGHT[ch.reliability] || 1;
+    const cost = LEVEL_COST[ch.level] || 1;
+    // 信頼度は二乗で効かせる。皮層のような変動形質が「分割数が多い」だけで
+    // 最初の質問に選ばれるのを防ぐ。
+    const score = (gain * w * w) / cost;
+    if (!best || score > best.score) {
+      best = { charId: ch.id, ch, score, kind: 'split', groups: Array.from(groups.values()) };
+    }
+  });
+  return best;
+}
+
+// 期待値チェック（build とアプリのセルフテストで共用）
+function checkExpectation(result, expect) {
+  const failures = [];
+  const names = result.survivors.map((s) => s.taxon.id);
+  if (expect.empty && names.length !== 0) failures.push(`候補が空でない: ${names.join(', ')}`);
+  if (expect.exact) {
+    const a = names.slice().sort().join(',');
+    const b = expect.exact.slice().sort().join(',');
+    if (a !== b) failures.push(`候補が ${b} でなく ${a}`);
+  }
+  if (expect.top2) {
+    const top = names.slice(0, 2).sort().join(',');
+    const want = expect.top2.slice().sort().join(',');
+    if (top !== want) failures.push(`上位2件が ${want} でなく ${top}`);
+  }
+  if (expect.survivorCount != null && names.length !== expect.survivorCount) {
+    failures.push(`候補数が ${expect.survivorCount} でなく ${names.length}`);
+  }
+  if (expect.nextOneOf) {
+    const id = result.next ? result.next.charId : null;
+    if (expect.nextOneOf.indexOf(id) < 0) failures.push(`次の形質が ${id}（期待: ${expect.nextOneOf.join('/')}）`);
+  }
+  if (expect.shadow && !result.globalWarnings.some((w) => w.kind === 'shadow')) {
+    failures.push('未記載系統の警告が出ていない');
+  }
+  if (expect.tie === true && !result.tie) failures.push('同点になっていない');
+  if (expect.shadowRegionMatch) {
+    expect.shadowRegionMatch.forEach((id) => {
+      if (!result.globalWarnings.some((w) => w.kind === 'shadow' && w.id === id && w.regionMatch === true)) {
+        failures.push(`${id} の警告に産地一致が付いていない`);
+      }
+    });
+  }
+  if (expect.first && names[0] !== expect.first) failures.push(`1位が ${expect.first} でなく ${names[0]}`);
+  if (expect.uncertainFor) {
+    expect.uncertainFor.forEach((id) => {
+      const row = result.rows.find((r) => r.taxon.id === id);
+      if (!row || !row.warnings.some((w) => w.kind === 'uncertain')) failures.push(`${id} に推定・係争中セルの警告が出ていない`);
+    });
+  }
+  return { pass: failures.length === 0, failures };
+}
+
+// ブラウザでは単一ファイルにインライン展開されるため、明示的に window に載せる。
+if (typeof window !== 'undefined') {
+  window.KeyEngine = {
+    evaluate, suggestNext, evalChar, labelFor, shortFor, cellLabel, checkExpectation, isUncertainCell,
+    cleanSeq, kmerSet, interpretScore, matchSequence,
+    RELIABILITY_WEIGHT, LEVEL_COST, LEVEL_LABEL
+  };
+}
+
+// ---------- 配列の照合（k-mer containment） ----------
+// BLAST の代替ではない。手元の Sanger リードが「どのリボタイプに一番近いか」を
+// オフラインで当たりを付けるための簡易判定。k-mer の含有率なので相同率ではない。
+function cleanSeq(s) {
+  return String(s)
+    .split(/\r?\n/)
+    .filter((l) => !/^>/.test(l.trim()))
+    .join('')
+    .toUpperCase()
+    .replace(/[^ACGTUN]/g, '')
+    .replace(/U/g, 'T');
+}
+function kmerSet(seq, k) {
+  const set = new Set();
+  for (let i = 0; i + k <= seq.length; i += 1) {
+    const km = seq.substr(i, k);
+    if (/^[ACGT]+$/.test(km)) set.add(km);
+  }
+  return set;
+}
+function interpretScore(s) {
+  if (s >= 0.9) return '同一リボタイプの可能性が高い';
+  if (s >= 0.6) return '同種・近縁リボタイプ';
+  if (s >= 0.3) return '同属だが参照セットの外';
+  return '参照セットに近い配列がない';
+}
+function matchSequence(refs, query, opts) {
+  const k = (opts && opts.k) || 12;
+  const exclude = (opts && opts.exclude) || null;
+  const q = cleanSeq(query);
+  const qk = [];
+  for (let i = 0; i + k <= q.length; i += 1) {
+    const km = q.substr(i, k);
+    if (/^[ACGT]+$/.test(km)) qk.push(km);
+  }
+  if (!qk.length) return { error: '配列が短すぎます（' + k + '塩基以上の ACGT が必要）', queryLength: q.length };
+  const rows = refs
+    .filter((r) => !exclude || r.id !== exclude)
+    .map((r) => {
+      const refSet = kmerSet(cleanSeq(r.seq), k);
+      let hit = 0;
+      for (let i = 0; i < qk.length; i += 1) if (refSet.has(qk[i])) hit += 1;
+      return { id: r.id, species: r.species, ribotype: r.ribotype, specimen: r.specimen, outgroup: r.outgroup, score: hit / qk.length, hits: hit };
+    })
+    .sort((a, b) => b.score - a.score);
+  const top = rows.slice(0, 5);
+  const ambiguous = top.length > 1 && top[0].species !== top[1].species && (top[0].score - top[1].score) < 0.05;
+  return { queryLength: q.length, kmers: qk.length, top, best: top[0], ambiguous, k, verdict: interpretScore(top[0].score) };
+}
+
+</script>
+<script>
+/* Reticularia 同定支援（試作）— UI */
+(function () {
+  'use strict';
+  const D = window.__DATA__;
+  const E = window.KeyEngine;
+
+  const state = { obs: {}, region: '', mode: 'standard', maxLevel: 3 };
+
+  const $ = (s) => document.querySelector(s);
+  const el = (tag, cls, text) => {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  };
+
+  const charById = {};
+  D.characters.forEach((c) => { charById[c.id] = c; });
+
+  function obsText(ch, val) {
+    if (val === undefined) return '';
+    if (ch.type === 'num') return val + (ch.unit ? ' ' + ch.unit : '');
+    return (Array.isArray(val) ? val : [val]).map((s) => E.shortFor(ch, s)).join(' / ');
+  }
+
+  // 英文中の学名（Reticularia / R. + 種小名）を斜体にする。sp. と s. str. は斜体にしない。
+  function italicizeNames(text) {
+    const frag = document.createDocumentFragment();
+    const re = /(?:Reticularia|R\.)(?: (?!sp\.|s\. str)[a-z]+)?/g;
+    let last = 0;
+    let m;
+    while ((m = re.exec(text))) {
+      frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+      frag.appendChild(el('i', null, m[0]));
+      last = m.index + m[0].length;
+    }
+    frag.appendChild(document.createTextNode(text.slice(last)));
+    return frag;
+  }
+
+  function renderSummaryEn() {
+    const box = $('#summaryEn');
+    const en = D.meta.summaryEn;
+    if (!box || !en) return;
+    box.appendChild(el('summary', null, 'English summary'));
+    const lead = el('p');
+    lead.appendChild(italicizeNames(en.lead));
+    box.appendChild(lead);
+    const ul = el('ul');
+    en.points.forEach((t) => {
+      const li = el('li');
+      li.appendChild(italicizeNames(t));
+      ul.appendChild(li);
+    });
+    box.appendChild(ul);
+    const cite = el('p', 'cite');
+    cite.appendChild(italicizeNames(en.citation + ' '));
+    const pdf = document.createElement('a');
+    pdf.href = D.meta.sourceUrl;
+    pdf.textContent = 'PDF (fuse-journal.org)';
+    cite.appendChild(pdf);
+    cite.appendChild(document.createTextNode(' — Supplementary data: '));
+    const zen = document.createElement('a');
+    zen.href = 'https://doi.org/' + D.meta.supplement;
+    zen.textContent = 'doi:' + D.meta.supplement;
+    cite.appendChild(zen);
+    cite.appendChild(document.createTextNode(' — Key version ' + D.meta.version + '.'));
+    box.appendChild(cite);
+  }
+
+  // ---------- header ----------
+  function initHeader() {
+    renderSummaryEn();
+    $('#srcLink').href = D.meta.sourceUrl;
+    $('#scopeShort').textContent = D.meta.scopeShort + ' ';
+    $('#scope').textContent = D.meta.scope;
+    if (D.meta.review) {
+      const r = $('#review');
+      const st = D.meta.review.status;
+      r.textContent = st === 'author' ? '著者公開（本論文の範囲）'
+        : st === 'reviewed' ? '専門家レビュー済み' : '専門家レビュー未実施';
+      if (st === 'author') { r.className = 'badge rel-high'; }
+      r.title = D.meta.review.note || '';
+    }
+    D.regions.forEach((r) => {
+      const o = el('option', null, r.label);
+      o.value = r.id;
+      $('#region').appendChild(o);
+    });
+    $('#region').addEventListener('change', (e) => {
+      state.obs.region = e.target.value || undefined;
+      renderResult();
+      renderRecord();
+    });
+
+    $('#levelSeg').querySelectorAll('button').forEach((b) => {
+      b.setAttribute('aria-pressed', String(Number(b.dataset.level) === state.maxLevel));
+      b.addEventListener('click', () => {
+        state.maxLevel = Number(b.dataset.level);
+        $('#levelSeg').querySelectorAll('button').forEach((x) => {
+          x.setAttribute('aria-pressed', String(Number(x.dataset.level) === state.maxLevel));
+        });
+        renderChars();
+        renderResult();
+      });
+    });
+
+    const MODE_LABEL = { standard: '標準', strict: '厳密', lenient: '緩和' };
+    $('#modeNow').textContent = MODE_LABEL[state.mode];
+    $('#modeSeg').querySelectorAll('button').forEach((b) => {
+      b.setAttribute('aria-pressed', String(b.dataset.mode === state.mode));
+      b.addEventListener('click', () => {
+        state.mode = b.dataset.mode;
+        $('#modeSeg').querySelectorAll('button').forEach((x) => {
+          x.setAttribute('aria-pressed', String(x.dataset.mode === state.mode));
+        });
+        $('#modeNow').textContent = MODE_LABEL[state.mode];
+        renderResult();
+      });
+    });
+
+    $('#reset').addEventListener('click', () => {
+      state.obs = {};
+      state.region = '';
+      $('#region').value = '';
+      renderChars();
+      renderResult();
+      renderRecord();
+    });
+
+    document.querySelectorAll('nav button').forEach((b) => {
+      b.addEventListener('click', () => showTab(b.dataset.tab));
+    });
+
+    $('#mbarGo').addEventListener('click', () => {
+      const r = $('#result');
+      if (r && r.scrollIntoView) r.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    $('#toggleSrc').addEventListener('click', () => {
+      state.showSrc = !state.showSrc;
+      $('#toggleSrc').setAttribute('aria-pressed', String(state.showSrc));
+      renderMatrix();
+    });
+  }
+
+  function showTab(name) {
+    document.querySelectorAll('nav button').forEach((x) => {
+      x.setAttribute('aria-selected', String(x.dataset.tab === name));
+    });
+    document.querySelectorAll('.panel').forEach((p) => {
+      p.classList.toggle('active', p.id === 'panel-' + name);
+    });
+    // 狭い画面の下部バー（候補の要約）は判定タブでだけ出す
+    document.body.classList.toggle('tab-key', name === 'key');
+  }
+
+
+
+  // ---------- claims（論文の要点） ----------
+  function cellSigSet(cell) {
+    if (!cell) return null;
+    if (Array.isArray(cell.ranges)) return cell.ranges.map((r) => r.range.join('-')).join(',');
+    if (Array.isArray(cell.range)) return cell.range.join('-');
+    return (cell.states || []).slice().sort().join('|');
+  }
+
+  // 2種がこの形質で区別できるか（連続量は範囲が重ならないこと、質的形質は状態が重ならないこと）
+  function separated(ch, a, b) {
+    const ca = a.chars && a.chars[ch.id];
+    const cb = b.chars && b.chars[ch.id];
+    if (!ca || !cb) return null;
+    const ra = Array.isArray(ca.ranges) ? ca.ranges.map((r) => r.range)
+      : Array.isArray(ca.range) ? [ca.range] : null;
+    const rb = Array.isArray(cb.ranges) ? cb.ranges.map((r) => r.range)
+      : Array.isArray(cb.range) ? [cb.range] : null;
+    if (ra && rb) {
+      return ra.every((x) => rb.every((y) => x[1] < y[0] || y[1] < x[0]));
+    }
+    const sa = (ca.states || []);
+    const sb = (cb.states || []);
+    return !sa.some((s) => sb.indexOf(s) >= 0);
+  }
+
+  function discrimination(ch) {
+    const taxa = (D.taxa || []).filter((t) => t.chars && t.chars[ch.id]);
+    let pairs = 0;
+    let sep = 0;
+    for (let i = 0; i < taxa.length; i += 1) {
+      for (let j = i + 1; j < taxa.length; j += 1) {
+        const r = separated(ch, taxa[i], taxa[j]);
+        if (r === null) continue;
+        pairs += 1;
+        if (r) sep += 1;
+      }
+    }
+    return { taxa: taxa.length, pairs, sep };
+  }
+
+  function renderClaims() {
+    const box = $('#claims');
+    if (!box || !D.claims) return;
+    box.textContent = '';
+    const lead = $('#claims-lead');
+    if (lead) lead.textContent = D.claims.lead;
+
+    D.claims.items.forEach((item, idx) => {
+      const card = el('div', 'claim');
+      const h = el('h2');
+      h.appendChild(el('span', 'cnum', String(idx + 1)));
+      h.appendChild(document.createTextNode(item.title));
+      card.appendChild(h);
+      card.appendChild(el('p', null, item.body));
+
+      if (item.visual === 'grid') card.appendChild(claimGrid());
+      if (item.visual === 'discrimination') card.appendChild(claimBars());
+      if (item.visual === 'cryptic') card.appendChild(claimCryptic());
+      if (item.visual === 'coverage') card.appendChild(claimCoverage());
+      box.appendChild(card);
+    });
+  }
+
+  function claimGrid() {
+    const mesh = charById['c10'];
+    const orn = charById['c11'];
+    const wrap = el('div');
+    if (!mesh || !orn) return wrap;
+    const scroll = el('div', 'tbl-scroll');
+    const table = document.createElement('table');
+    table.className = 'mesh';
+    const thead = document.createElement('thead');
+    const hr = document.createElement('tr');
+    const corner = el('th', 'corner', '網目数 ＼ 装飾');
+    hr.appendChild(corner);
+    orn.states.forEach((s) => hr.appendChild(el('th', null, s.short || s.label)));
+    thead.appendChild(hr);
+    table.appendChild(thead);
+    const tb = document.createElement('tbody');
+    mesh.states.forEach((ms) => {
+      const tr = document.createElement('tr');
+      tr.appendChild(el('th', null, ms.short || ms.label));
+      orn.states.forEach((os) => {
+        const hit = (D.taxa || []).filter((t) => {
+          const c1 = t.chars && t.chars['c10'];
+          const c2 = t.chars && t.chars['c11'];
+          return c1 && c2 && c1.states.indexOf(ms.id) >= 0 && c2.states.indexOf(os.id) >= 0;
+        });
+        const td = el('td', hit.length ? 'filled' : 'empty');
+        if (!hit.length) {
+          td.textContent = '—';
+        } else {
+          hit.forEach((t, i) => {
+            if (i) td.appendChild(document.createElement('br'));
+            td.appendChild(el('i', null, t.name));
+            if (E.isUncertainCell(t.chars['c10']) || E.isUncertainCell(t.chars['c11'])) {
+              const m = el('span', null, ' ◐');
+              m.title = '推定セルによる配置';
+              td.appendChild(m);
+            }
+          });
+        }
+        tr.appendChild(td);
+      });
+      tb.appendChild(tr);
+    });
+    table.appendChild(tb);
+    scroll.appendChild(table);
+    wrap.appendChild(scroll);
+    wrap.appendChild(el('div', 'src',
+      '形質 c10（' + mesh.label + '）× c11（' + orn.label + '）。空欄は「その組み合わせの種がいない」ではなく「本論文に記載がない」。◐ は推定セルによる配置。'));
+    return wrap;
+  }
+
+  function claimBars() {
+    const wrap = el('div', 'bars');
+    const rows = (D.characters || []).map((ch) => ({ ch, d: discrimination(ch) }))
+      .sort((a, b) => (b.d.sep - a.d.sep) || (b.d.pairs - a.d.pairs));
+    rows.forEach(({ ch, d }) => {
+      const row = el('div', 'barrow' + (ch.reliability === 'high' ? ' hi' : ''));
+      row.appendChild(el('div', 'lab', 'L' + ch.level + ' ' + ch.label));
+      const bg = el('div', 'barbg');
+      const enough = d.pairs >= 2;
+      const ratio = enough ? d.sep / d.pairs : 0;
+      const fill = el('div', 'barfill' + (d.sep ? '' : ' zero'));
+      fill.style.width = (ratio * 100).toFixed(0) + '%';
+      bg.appendChild(fill);
+      row.appendChild(bg);
+      row.appendChild(el('div', 'val', enough ? (d.sep + '/' + d.pairs) : '—'));
+      if (ch.variable) {
+        const tag = el('span', 'tag', '変動');
+        tag.title = ch.variable;
+        row.appendChild(tag);
+      }
+      wrap.appendChild(row);
+    });
+    wrap.appendChild(el('div', 'src',
+      '棒は「その形質で区別できる種のペア数 / 記載があるペア数」。連続量は範囲が重ならない場合だけ区別と数える。太字は信頼度・高、「変動」は種内で値が動くと本文が述べている形質。'));
+    return wrap;
+  }
+
+  function claimCryptic() {
+    const wrap = el('div');
+    const shadows = D.shadowTaxa || [];
+    const nDescribed = (D.taxa || []).filter((t) => t.status === 'described').length;
+    const stat = el('div', 'src');
+    stat.style.fontSize = '13px';
+    stat.style.color = 'var(--ink)';
+    stat.textContent = '記載済み ' + nDescribed + ' 種 ／ 形態未記載の分子系統 ' + shadows.length + ' 件';
+    wrap.appendChild(stat);
+    shadows.forEach((s) => {
+      const d = el('div', 'note info');
+      d.style.marginTop = '8px';
+      d.appendChild(el('b', null, s.label));
+      d.appendChild(document.createTextNode(s.note));
+      if (s.regionNote) d.appendChild(el('div', 'small', '既知の産地：' + s.regionNote));
+      wrap.appendChild(d);
+    });
+    return wrap;
+  }
+
+  function claimCoverage() {
+    const wrap = el('div', 'bars');
+    (D.taxa || []).forEach((t) => {
+      const filled = (D.characters || []).filter((c) => t.chars && t.chars[c.id]).length;
+      const row = el('div', 'barrow');
+      const lab = el('div', 'lab');
+      lab.appendChild(el('i', null, t.name));
+      row.appendChild(lab);
+      const bg = el('div', 'barbg');
+      const fill = el('div', 'barfill');
+      fill.style.width = ((filled / D.characters.length) * 100).toFixed(0) + '%';
+      bg.appendChild(fill);
+      row.appendChild(bg);
+      row.appendChild(el('div', 'val', filled + '/' + D.characters.length));
+      wrap.appendChild(row);
+    });
+    wrap.appendChild(el('div', 'src', '全 ' + D.characters.length + ' 形質のうち、記載があり判定に使えるものの数。'));
+    return wrap;
+  }
+
+  // ---------- gallery ----------
+  function panelList(ps) {
+    if (!ps || !ps.length) return '';
+    const out = [];
+    let i = 0;
+    while (i < ps.length) {
+      let j = i;
+      while (j + 1 < ps.length && ps[j + 1].charCodeAt(0) === ps[j].charCodeAt(0) + 1) j += 1;
+      out.push(j - i >= 2 ? ps[i] + '–' + ps[j] : ps.slice(i, j + 1).join(', '));
+      i = j + 1;
+    }
+    return out.join(', ');
+  }
+
+  // 4種の胞子（各図の M 行）を、網目数 → 装飾の順に縦に並べる。決め手の形質を1画面で見比べるため。
+  function sporeCompare() {
+    const mesh = charById['c10'];
+    const orn = charById['c11'];
+    const sec = el('div', 'gsec');
+    sec.id = 'spore-compare';
+    sec.appendChild(el('h3', null, '胞子の比較（4種を並べて）'));
+    const spore = (D.gallerySections || []).find((g) => g.id === 'spore');
+    sec.appendChild(el('p', 'small',
+      '各図の M 行（メチルブルー染色、スケールはいずれも 2 µm）。網目の数（' + mesh.label + '）が少ない種から並べ、' +
+      '同じ網目数の中では網目のない側の装飾（' + orn.label + '）で分けています。' + (spore ? spore.note : '')));
+
+    const idx = (ch, cell) => (cell && cell.states ? ch.states.findIndex((s) => s.id === cell.states[0]) : 99);
+    const rows = (D.figureOrder || [])
+      .map((tid) => (D.taxa || []).find((t) => t.id === tid))
+      .filter((t) => t && D.figures[t.id])
+      .sort((a, b) => (idx(mesh, a.chars.c10) - idx(mesh, b.chars.c10)) || (idx(orn, a.chars.c11) - idx(orn, b.chars.c11)));
+
+    const list = el('div', 'scmp');
+    let lastGroup = null;
+    rows.forEach((t) => {
+      const c10 = t.chars.c10;
+      const group = c10 ? E.cellLabel(mesh, c10) : '記載なし';
+      if (group !== lastGroup) {
+        list.appendChild(el('div', 'scmp-group', '網目数：' + group));
+        lastGroup = group;
+      }
+      const fig = D.figures[t.id];
+      const row = el('div', 'scmp-row');
+      const head = el('div', 'scmp-head');
+      head.appendChild(el('span', 'nm', t.name));
+      [[mesh, c10], [orn, t.chars.c11]].forEach(([ch, cell]) => {
+        if (!cell) return;
+        const mark = cell.inferred ? '◐ ' : cell.contested ? '？ ' : '';
+        const chip = el('span', 'chip' + (mark ? ' inf' : ''), mark + ch.label.split('（')[0] + '：' + E.cellLabel(ch, cell));
+        chip.title = '出典: ' + (cell.src || '—') + (mark ? '（推定・係争中のセルは除外に使いません）' : '');
+        head.appendChild(chip);
+      });
+      head.appendChild(el('span', 'small', fig.label + 'M（' + fig.page + '）'));
+      row.appendChild(head);
+      const a = document.createElement('a');
+      a.href = 'assets/' + fig.file + '-M.jpg';
+      a.target = '_blank';
+      a.rel = 'noopener';
+      const img = document.createElement('img');
+      img.src = 'assets/' + fig.file + '-M.jpg';
+      img.alt = t.name + ' の胞子（' + fig.label + 'M）';
+      img.loading = 'lazy';
+      a.appendChild(img);
+      row.appendChild(a);
+      list.appendChild(row);
+    });
+    sec.appendChild(list);
+    return sec;
+  }
+
+  function renderGallery() {
+    const box = $('#gallery');
+    if (!box) return;
+    box.textContent = '';
+    box.appendChild(sporeCompare());
+
+    const byChar = new Map();
+    (D.stateAnchors || []).forEach((a) => {
+      if (!byChar.has(a.charId)) byChar.set(a.charId, []);
+      byChar.get(a.charId).push(a);
+    });
+
+    byChar.forEach((anchors, charId) => {
+      const ch = charById[charId];
+      if (!ch) return;
+      const sec = el('div', 'gsec');
+      sec.id = 'anchor-' + charId;
+      sec.appendChild(el('h3', null, '状態の見本: ' + ch.label));
+      sec.appendChild(el('p', 'small',
+        '本文が図を名指ししている箇所を、そのまま対応させています。引用は原論文の該当句とページ。画像をクリックすると原寸で開きます。'));
+      anchors.forEach((a) => {
+        const block = el('div', 'anchor');
+        block.appendChild(el('div', 'astate', E.labelFor(ch, a.stateId)));
+        const grid = el('div', 'aitems');
+        a.items.forEach((it) => {
+          const card = el('div', 'aitem' + (it.panels && it.panels.indexOf('M') >= 0 ? ' wide' : ''));
+          if (it.missing) {
+            card.appendChild(el('div', 'missing', '本論文に図版なし'));
+          } else {
+            const imgs = el('div', 'aimgs');
+            it.panels.forEach((pn) => {
+              const a2 = document.createElement('a');
+              a2.href = 'assets/' + it.fig + '-' + pn + '.jpg';
+              a2.target = '_blank';
+              a2.rel = 'noopener';
+              const img = document.createElement('img');
+              img.src = 'assets/' + it.fig + '-' + pn + '.jpg';
+              img.alt = it.fig + ' ' + pn;
+              img.loading = 'lazy';
+              if (pn === 'M') img.className = 'wide';
+              a2.appendChild(img);
+              imgs.appendChild(a2);
+            });
+            card.appendChild(imgs);
+          }
+          const tx = D.figures[it.taxonId];
+          const txName = tx ? tx.taxon : (((D.taxa || []).find((t) => t.id === it.taxonId) || {}).name || '');
+          const cap = el('div', 'acap');
+          if (tx) cap.appendChild(document.createTextNode(tx.label + panelList(it.panels) + '　'));
+          if (txName) cap.appendChild(el('i', null, txName));
+          cap.appendChild(el('span', 'small', '（' + it.src + '）'));
+          card.appendChild(cap);
+
+          if (it.panels && it.panels.length) {
+            const descs = [];
+            const scales = [];
+            it.panels.forEach((pn) => {
+              const d = ((D.panelText || {})[it.taxonId] || {})[pn];
+              if (d && descs.indexOf(d) < 0) descs.push(d);
+              const s2 = ((D.panelScale || {})[it.taxonId] || {})[pn];
+              if (s2 && scales.indexOf(s2) < 0) scales.push(s2);
+            });
+            const line = el('div', 'apanel');
+            if (descs.length) line.appendChild(document.createTextNode(descs.join(' / ')));
+            if (scales.length === 1) {
+              line.appendChild(document.createTextNode((descs.length ? ' ／ ' : '') + 'スケール ' + scales[0]));
+            }
+            if (line.textContent) card.appendChild(line);
+          }
+
+          if (it.inferred) card.appendChild(el('span', 'badge rel-low', '推定'));
+          if (it.quote) card.appendChild(el('div', 'aquote', '“' + it.quote + '”'));
+          if (it.note) card.appendChild(el('div', 'small', it.note));
+          grid.appendChild(card);
+        });
+        block.appendChild(grid);
+        sec.appendChild(block);
+      });
+      box.appendChild(sec);
+    });
+
+    const list = el('div', 'gsec');
+    list.appendChild(el('h3', null, '図版一覧（パネル単位）'));
+    list.appendChild(el('p', 'small',
+      'パネルの内容とスケールバーは原論文の脚注に従っています。クリックで原寸。'));
+    (D.figureOrder || []).forEach((tid) => {
+      const fig = D.figures[tid];
+      if (!fig) return;
+      const sub = el('div', 'gsub');
+      const h = el('h4');
+      h.appendChild(document.createTextNode(fig.label + '　'));
+      h.appendChild(el('i', null, fig.taxon));
+      if (fig.type) h.appendChild(document.createTextNode('（' + fig.type + '）'));
+      sub.appendChild(h);
+      if (D.figureCaptions && D.figureCaptions[tid]) {
+        sub.appendChild(el('p', 'figcap', D.figureCaptions[tid]));
+      }
+      const grid = el('div', 'pgrid');
+      (D.panelOrder || []).forEach((pn) => {
+        const cell = document.createElement('a');
+        cell.className = 'pcell' + (pn === 'M' ? ' wide' : '');
+        cell.href = 'assets/' + fig.file + '-' + pn + '.jpg';
+        cell.target = '_blank';
+        cell.rel = 'noopener';
+        const img = document.createElement('img');
+        img.src = 'assets/' + fig.file + '-' + pn + '.jpg';
+        img.alt = fig.taxon + ' ' + pn;
+        img.loading = 'lazy';
+        cell.appendChild(img);
+        const scale = ((D.panelScale || {})[tid] || {})[pn];
+        cell.appendChild(el('div', 'pcap',
+          pn + '　' + ((D.panelText[tid] || {})[pn] || '') + (scale ? ' ／ ' + scale : '')));
+        grid.appendChild(cell);
+      });
+      sub.appendChild(grid);
+      list.appendChild(sub);
+    });
+    box.appendChild(list);
+    box.appendChild(el('p', 'small', D.galleryAttribution || ''));
+  }
+
+  // ---------- characters ----------
+  function renderChars() {
+    const box = $('#chars');
+    box.textContent = '';
+    const chars = D.characters.filter((c) => c.level <= state.maxLevel);
+
+    // 除外に使う形質（論文が種を分けるのに使っている形質）を先に出し、補助形質は折りたたむ。
+    const key = chars.filter((c) => c.eliminates);
+    const aux = chars.filter((c) => !c.eliminates);
+
+    if (key.length) {
+      const head = el('div', 'cgroup');
+      head.appendChild(el('h2', null, 'まず見る形質（' + key.length + '）'));
+      head.appendChild(el('p', null,
+        '論文が種を分けるのに使っている形質で、食い違えば候補から外します。観察できたものだけで構いません。'));
+      box.appendChild(head);
+      key.forEach((c) => box.appendChild(charCard(c)));
+    }
+
+    if (aux.length) {
+      const det = document.createElement('details');
+      det.className = 'aux';
+      const observed = aux.filter((c) => state.obs[c.id] !== undefined).length;
+      det.open = state.auxOpen || observed > 0;
+      det.addEventListener('toggle', () => { state.auxOpen = det.open; });
+      const sum = el('summary', null, '補助形質（' + aux.length + '）');
+      sum.appendChild(el('span', 'small',
+        '　食い違っても除外せず、順位の参考にだけ使う形質' + (observed ? '・入力 ' + observed + ' 件' : '')));
+      det.appendChild(sum);
+      [1, 2, 3].forEach((lv) => {
+        const group = aux.filter((c) => c.level === lv);
+        if (!group.length) return;
+        det.appendChild(el('div', 'sublevel', 'L' + lv + ' ' + E.LEVEL_LABEL[lv]));
+        group.forEach((c) => det.appendChild(charCard(c)));
+      });
+      box.appendChild(det);
+    }
+
+    if (state.maxLevel < 3) {
+      const note = el('div', 'char');
+      note.appendChild(el('div', 'hint',
+        'L' + (state.maxLevel + 1) + ' 以上の形質は表示していません。未観察として扱われます。'));
+      box.appendChild(note);
+    }
+  }
+
+  function charCard(ch) {
+    const card = el('div', 'char');
+    card.id = 'char-' + ch.id;
+
+    const head = el('div', 'char-head');
+    head.appendChild(el('span', 'badge L' + ch.level, 'L' + ch.level));
+    head.appendChild(el('span', 'badge rel-' + ch.reliability,
+      '信頼度 ' + ({ high: '高', med: '中', low: '低' }[ch.reliability] || '—')));
+    if (ch.eliminates) head.appendChild(el('span', 'badge elim', '除外に使用'));
+    head.appendChild(el('span', 'char-title', ch.label));
+    card.appendChild(head);
+
+    card.appendChild(el('div', 'char-q', ch.question));
+
+    if (ch.type === 'num') {
+      const row = el('div', 'numrow');
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.step = ch.unit === 'mm' ? '1' : '0.1';
+      input.min = '0';
+      input.placeholder = ch.unit || '';
+      input.id = 'num-' + ch.id;
+      if (state.obs[ch.id] !== undefined) input.value = state.obs[ch.id];
+      input.addEventListener('input', () => {
+        if (input.value === '') delete state.obs[ch.id];
+        else state.obs[ch.id] = Number(input.value);
+        renderResult();
+        renderRecord();
+      });
+      row.appendChild(input);
+      row.appendChild(el('span', 'small', ch.unit ? ch.unit + ' 単位' : ''));
+      const clear = el('button', 'ghost', '不明');
+      clear.addEventListener('click', () => {
+        delete state.obs[ch.id];
+        input.value = '';
+        renderResult();
+        renderRecord();
+      });
+      row.appendChild(clear);
+      card.appendChild(row);
+    } else {
+      const wrap = el('div', 'states');
+      (ch.states || []).forEach((s) => {
+        const b = el('button', null, s.label);
+        b.dataset.state = s.id;
+        const cur = state.obs[ch.id];
+        const on = Array.isArray(cur) ? cur.indexOf(s.id) >= 0 : cur === s.id;
+        b.setAttribute('aria-pressed', String(on));
+        b.addEventListener('click', () => {
+          let cur2 = state.obs[ch.id];
+          if (ch.multi) {
+            cur2 = Array.isArray(cur2) ? cur2.slice() : (cur2 ? [cur2] : []);
+            const i = cur2.indexOf(s.id);
+            if (i >= 0) cur2.splice(i, 1); else cur2.push(s.id);
+            if (!cur2.length) delete state.obs[ch.id]; else state.obs[ch.id] = cur2;
+          } else {
+            if (cur2 === s.id) delete state.obs[ch.id]; else state.obs[ch.id] = s.id;
+          }
+          // update pressed states in this card only
+          wrap.querySelectorAll('button[data-state]').forEach((x) => {
+            const c2 = state.obs[ch.id];
+            const on2 = Array.isArray(c2) ? c2.indexOf(x.dataset.state) >= 0 : c2 === x.dataset.state;
+            x.setAttribute('aria-pressed', String(on2));
+          });
+          renderResult();
+          renderRecord();
+        });
+        // 状態ボタンの横に、本文が名指ししている図版のサムネイルを置く
+        const line = el('div', 'statewrap');
+        line.appendChild(b);
+        (D.stateAnchors || [])
+          .filter((x) => x.charId === ch.id && x.stateId === s.id)
+          .forEach((x) => x.items.forEach((it) => {
+            if (!it.fig) return;
+            const pn = it.panels[0];
+            const fig = D.figures[it.taxonId];
+            const a2 = document.createElement('a');
+            a2.className = 'sthumb';
+            a2.href = 'assets/' + it.fig + '-' + pn + '.jpg';
+            a2.target = '_blank';
+            a2.rel = 'noopener';
+            a2.title = (fig ? fig.label + pn + ' ' + fig.taxon : it.fig + ' ' + pn) +
+              '（' + ((D.panelText[it.taxonId] || {})[pn] || '') + '）' + (it.inferred ? '［推定］' : '');
+            const img = document.createElement('img');
+            img.src = 'assets/' + it.fig + '-' + pn + '.jpg';
+            img.alt = a2.title;
+            img.loading = 'lazy';
+            a2.appendChild(img);
+            line.appendChild(a2);
+          }));
+        wrap.appendChild(line);
+      });
+      card.appendChild(wrap);
+      if (ch.multi) card.appendChild(el('div', 'hint', '複数選択できます。'));
+    }
+
+    const foot = el('div', 'char-foot');
+    foot.appendChild(el('span', 'src', '形質の出典: ' + ((D.charSources && D.charSources[ch.id]) || '—')));
+    card.appendChild(foot);
+    if (ch.note) card.appendChild(el('div', 'hint', ch.note));
+    const links = el('div', 'toolbar');
+    links.style.margin = '8px 0 0';
+    const jump = (label, targetId) => {
+      const b = el('button', 'ghost', label);
+      b.addEventListener('click', () => {
+        showTab('gallery');
+        const t = document.getElementById(targetId);
+        if (t && t.scrollIntoView) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+      links.appendChild(b);
+    };
+    const spore = (D.gallerySections || []).find((g) => g.id === 'spore');
+    if (spore && spore.charIds.indexOf(ch.id) >= 0) jump('4種の胞子を並べて見る', 'spore-compare');
+    if ((D.stateAnchors || []).some((x) => x.charId === ch.id)) jump('状態の見本を見る', 'anchor-' + ch.id);
+    if (links.childNodes.length) card.appendChild(links);
+    return card;
+  }
+
+  // ---------- result ----------
+  function renderResult() {
+    const res = E.evaluate(D, state.obs, { mode: state.mode, maxLevel: state.maxLevel });
+    const box = $('#result');
+    box.textContent = '';
+
+    const strong = res.strong || res.survivors;
+    const weak = res.weak || [];
+    const count = strong.length || res.survivors.length;
+    const verdict = el('div', 'verdict' + (res.survivors.length ? '' : ' none'));
+    verdict.appendChild(el('h2', null,
+      res.survivors.length === 0 ? '既知の組合せに該当しません' :
+      strong.length === 1 ? '候補 1 種' :
+      strong.length === 0 ? '未観察（' + count + ' 種すべてが候補）' :
+      '候補 ' + strong.length + ' 種'));
+    let vtext;
+    if (res.survivors.length === 0) {
+      vtext = 'この論文に記載された5種のどれにも当てはまりません。未記載種か、観察の誤りの可能性があります。';
+    } else if (!strong.length) {
+      vtext = 'まだ観察が入っていません。下の形質から、観察できたものを選んでください。';
+    } else if (res.tie) {
+      vtext = '上位が同点です（判別不能）。下の「次に観る形質」で絞ってください。';
+    } else {
+      vtext = '観察 ' + res.observedChars + ' / ' + res.totalChars + ' 形質。' +
+        (res.mode === 'standard' ? '信頼度の高い形質のみで除外しています。' :
+         res.mode === 'strict' ? '全形質で除外しています（誤観察に弱い）。' :
+         '除外せず、支持の強さだけで並べています。');
+    }
+    const weakNoData = weak.filter((s) => !s.contradictions.length).length;
+    const weakContra = weak.length - weakNoData;
+    if (weakNoData && strong.length) {
+      vtext += ' ほかに、照合できる記載がなく判定できない種が ' + weakNoData + ' 種あります。';
+    }
+    if (weakContra && strong.length) {
+      vtext += ' ほかに、観察と食い違ったが除外に使わない形質だけの種が ' + weakContra + ' 種あります。';
+    }
+    verdict.appendChild(el('p', null, vtext));
+    box.appendChild(verdict);
+
+    // 狭い画面では結果が形質リストの下に回るので、下部バーに要約を出す
+    const mtext = $('#mbarText');
+    if (mtext) {
+      const names = strong.map((s) => s.taxon.name.replace('Reticularia ', 'R. '));
+      mtext.textContent = res.survivors.length === 0 ? '既知の組合せに該当しません'
+        : !strong.length ? '未観察（' + count + ' 種すべてが候補）'
+          : '候補 ' + names.length + ' 種：' + names.slice(0, 3).join('・') + (names.length > 3 ? ' ほか' : '');
+    }
+
+    res.globalWarnings.forEach((w) => {
+      const n = el('div', 'note warn');
+      n.appendChild(el('b', null, w.kind === 'shadow'
+        ? '未記載系統の可能性: ' + (w.label || '')
+        : '注意'));
+      n.appendChild(document.createTextNode(w.text));
+      if (w.kind === 'shadow') {
+        if (w.triggeredBy && w.triggeredBy.length) {
+          n.appendChild(el('div', 'small', '候補に残っている ' +
+            w.triggeredBy.map((id) => {
+              const t = (D.taxa || []).find((x) => x.id === id);
+              return t ? t.name.replace('Reticularia ', 'R. ') : id;
+            }).join('・') + ' と、形態では区別できません。'));
+        }
+        if (w.regionNote) {
+          n.appendChild(el('div', 'small', '既知の産地（参考）：' + w.regionNote +
+            (w.regionMatch === true ? '。入力した産地と一致します。'
+              : w.regionMatch === false ? '。入力した産地とは異なりますが、既知の標本が少ないため除外の根拠にはしません。'
+                : '。')));
+        }
+      }
+      box.appendChild(n);
+    });
+
+    const epithet = (name) => String(name).replace('Reticularia ', 'R. ');
+
+    strong.forEach((s) => {
+      const c = el('div', 'cand' + (s.observedCount < 2 ? ' weak' : ''));
+      c.appendChild(el('div', 'cand-name', s.taxon.name));
+      const meta = [];
+      meta.push('支持 ' + s.support.toFixed(1));
+      if (s.contra) meta.push('矛盾 ' + s.contra.toFixed(1));
+      meta.push('根拠 ' + s.used.length + ' 形質');
+      if (s.nears.length) meta.push('近似 ' + s.nears.length);
+      c.appendChild(el('div', 'cand-meta', meta.join(' ／ ')));
+      if (s.taxon.figure) c.appendChild(el('div', 'cand-meta', s.taxon.figure + (s.taxon.nSpecimens ? ' ／ 本論文の検討標本 ' + s.taxon.nSpecimens + ' 点' : '')));
+      if (s.warnings.length) {
+        c.appendChild(el('div', 'chip near', s.warnings.map((x) => x.text).join(' ')));
+      }
+      const chips = el('div', 'chips');
+      s.used.forEach((u) => {
+        chips.appendChild(el('span', 'chip',
+          (u.cell && u.cell.provisional ? '✎ ' : '') +
+          u.ch.label.split('（')[0] + ': ' + obsText(u.ch, state.obs[u.ch.id])));
+      });
+      s.nears.forEach((u) => {
+        chips.appendChild(el('span', 'chip near',
+          '≒ ' + u.ch.label.split('（')[0] + ': ' + obsText(u.ch, state.obs[u.ch.id])));
+      });
+      c.appendChild(chips);
+      const provUsed = s.used.filter((u) => u.cell && u.cell.provisional);
+      if (provUsed.length) {
+        c.appendChild(el('div', 'hint',
+          'この判定には未裁定の候補セル（✎）が ' + provUsed.length + ' 件含まれます。'));
+      }
+      if (s.taxon.note) c.appendChild(el('div', 'hint', s.taxon.note));
+      box.appendChild(c);
+    });
+
+    if (weak.length && strong.length) {
+      const det = document.createElement('details');
+      det.className = 'elim';
+      det.appendChild(el('summary', null, '記載不足で判定できない種（' + weak.length + '）'));
+      weak.forEach((s) => {
+        const contradict = s.contradictions.map((x) => x.ch.label.split('（')[0]).join('、');
+        det.appendChild(el('div', 'small',
+          s.taxon.name + '：' + (s.contradictions.length
+            ? '観察と食い違うが、除外に使わない形質のみ（' + contradict + '）。'
+            : '観察した形質の中に、この種と照合できるものがありません（この論文の記載が少ないため、除外も支持もできません）。')));
+      });
+      box.appendChild(det);
+    } else if (!strong.length && weak.length) {
+      const c = el('div', 'cand');
+      c.appendChild(el('div', 'cand-name', 'この論文が扱う ' + weak.length + ' 種'));
+      const chips = el('div', 'chips');
+      weak.forEach((s) => chips.appendChild(el('span', 'chip', s.taxon.name)));
+      c.appendChild(chips);
+      c.appendChild(el('div', 'hint', 'まだ観察が入っていないため順位はついていません。上の形質から、観察できたものを選んでください。'));
+      box.appendChild(c);
+    }
+
+    if (res.next) {
+      const n = el('div', 'next');
+      n.appendChild(el('h2', null, res.next.kind === 'refute' ? '次に確認する形質' : '次に観る形質'));
+      const ch = res.next.ch;
+      const rel = { high: '高', med: '中', low: '低' }[ch.reliability] || '—';
+      n.appendChild(el('p', null,
+        res.next.kind === 'refute'
+          ? ch.label + '（L' + ch.level + '・信頼度' + rel + '）。ここが記載と違えば、この候補から外れます。'
+          : ch.label + '（L' + ch.level + ' ' + E.LEVEL_LABEL[ch.level] + '・信頼度' + rel + '）。' +
+            res.next.groups.map((g) => g.map(epithet).join('・')).join(' 対 ')));
+      const go = el('button', 'ghost', 'この形質へ');
+      go.addEventListener('click', () => {
+        const t = document.getElementById('char-' + ch.id);
+        if (t && t.scrollIntoView) t.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+      n.appendChild(go);
+      box.appendChild(n);
+    } else if (res.survivors.length === 1) {
+      const d = el('div', 'note info');
+      d.appendChild(el('b', null, '確認は一通り終わりました'));
+      d.appendChild(document.createTextNode(
+        'この候補を左右する主要形質（除外に使える形質）はすべて観察済みです。残るのは補助形質なので、判定を変えるには再観察か分子データが必要です。'));
+      box.appendChild(d);
+    }
+
+    if (res.survivors.length === 0 && res.eliminated.length) {
+      const d = el('div', 'note info');
+      d.appendChild(el('b', null, '除外の内訳'));
+      res.eliminated.forEach((s) => {
+        const line = el('div', null, s.taxon.name + '：' +
+          s.contradictions.slice(0, 3).map((x) => x.ch.label.split('（')[0]).join('、') + ' が不一致');
+        d.appendChild(line);
+      });
+      box.appendChild(d);
+    }
+
+    if (res.eliminated.length) {
+      const details = document.createElement('details');
+      details.className = 'elim';
+      details.appendChild(el('summary', null, '除外された候補（' + res.eliminated.length + '）'));
+      const ul = document.createElement('ul');
+      res.eliminated.forEach((s) => {
+        const li = document.createElement('li');
+        li.appendChild(el('b', null, s.taxon.name));
+        s.contradictions.forEach((x) => {
+          li.appendChild(el('div', null,
+            '・' + x.ch.label.split('（')[0] + '：観察 ' + obsText(x.ch, state.obs[x.ch.id]) +
+            ' ／ 記載 ' + E.cellLabel(x.ch, x.cell)));
+        });
+        ul.appendChild(li);
+      });
+      details.appendChild(ul);
+      box.appendChild(details);
+    }
+  }
+
+  // ---------- matrix ----------
+  function renderMatrix() {
+    const t = $('#matrix');
+    t.textContent = '';
+    const thead = document.createElement('thead');
+    const hr = document.createElement('tr');
+    ['形質', 'Lv', '信頼度', '除外'].forEach((h) => hr.appendChild(el('th', null, h)));
+    D.taxa.forEach((tx) => {
+      const th = el('th');
+      const n = el('div', null, tx.name);
+      n.style.fontStyle = 'italic';
+      th.appendChild(n);
+      if (tx.figure) th.appendChild(el('div', 'small', tx.figure));
+      if (tx.nSpecimens) th.appendChild(el('div', 'small', '本論文 n=' + tx.nSpecimens));
+      hr.appendChild(th);
+    });
+    thead.appendChild(hr);
+    t.appendChild(thead);
+
+    const tb = document.createElement('tbody');
+    D.characters.forEach((ch) => {
+      const tr = document.createElement('tr');
+      const th = el('th', null, ch.label);
+      th.style.fontWeight = '600';
+      tr.appendChild(th);
+      tr.appendChild(el('td', null, 'L' + ch.level));
+      tr.appendChild(el('td', null, { high: '高', med: '中', low: '低' }[ch.reliability]));
+      tr.appendChild(el('td', null, ch.eliminates ? '○' : ''));
+      D.taxa.forEach((tx) => {
+        const cell = tx.chars ? tx.chars[ch.id] : undefined;
+        const td = el('td');
+        if (!cell) {
+          td.className = 'gap';
+          td.textContent = '—';
+          td.title = '本論文に記載なし（判定では中立）';
+        } else {
+          let txt = E.cellLabel(ch, cell);
+          if (cell.inferred) { td.className = 'inf'; txt = '◐ ' + txt; }
+          if (cell.contested) { td.className = 'inf'; txt = '？ ' + txt; }
+          if (cell.provisional) {
+            td.className = td.className ? td.className + ' prov' : 'prov';
+            txt = '✎ ' + txt;
+          }
+          if (ch.type === 'num') td.className = td.className ? td.className + ' num' : 'num';
+          if (cell.ranges) td.className += ' wide';
+          td.textContent = txt;
+          if (state.showSrc) td.appendChild(el('span', 'srcline', cell.src || '—'));
+          td.title = '出典: ' + (cell.src || '—') + (cell.inferred ? '（推定）' : '') + (cell.provisional ? '（候補・未裁定）' : '') +
+            (cell.contested ? '（係争中: ' + cell.contested + '）' : '') +
+            (E.isUncertainCell(cell) ? '。食い違っても除外には使いません' : '');
+        }
+        tr.appendChild(td);
+      });
+      tb.appendChild(tr);
+    });
+    t.appendChild(tb);
+  }
+
+  // ---------- record ----------
+  function renderRecord() {
+    const res = E.evaluate(D, state.obs, { mode: state.mode, maxLevel: state.maxLevel });
+    const box = $('#obsTable');
+    box.textContent = '';
+    const table = document.createElement('table');
+    table.className = 'matrix';
+    const thead = document.createElement('thead');
+    const hr = document.createElement('tr');
+    ['形質', '観察値', '出典'].forEach((h) => hr.appendChild(el('th', null, h)));
+    thead.appendChild(hr);
+    table.appendChild(thead);
+    const tb = document.createElement('tbody');
+    D.characters.filter((c) => state.obs[c.id] !== undefined).forEach((ch) => {
+      const tr = document.createElement('tr');
+      tr.appendChild(el('td', null, ch.label));
+      tr.appendChild(el('td', null, obsText(ch, state.obs[ch.id])));
+      tr.appendChild(el('td', 'small', 'L' + ch.level));
+      tb.appendChild(tr);
+    });
+    if (!tb.children.length) {
+      const tr = document.createElement('tr');
+      const td = el('td', 'gap', 'まだ入力がありません。');
+      td.colSpan = 3;
+      tr.appendChild(td);
+      tb.appendChild(tr);
+    }
+    table.appendChild(tb);
+    box.appendChild(table);
+
+    const payload = {
+      source: D.meta.source,
+      matrixVersion: D.meta.version,
+      mode: state.mode,
+      maxLevel: state.maxLevel,
+      region: state.obs.region || null,
+      observation: {},
+      result: {
+        candidates: res.survivors.map((s) => s.taxon.name),
+        tie: res.tie
+      }
+    };
+    D.characters.forEach((ch) => {
+      if (state.obs[ch.id] !== undefined) {
+        payload.observation[ch.id] = {
+          label: ch.label,
+          value: state.obs[ch.id],
+          text: obsText(ch, state.obs[ch.id])
+        };
+      }
+    });
+    $('#obsJson').value = JSON.stringify(payload, null, 2);
+  }
+
+  function download(name, text) {
+    const blob = new Blob([text], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  }
+
+  function csvEscape(v) {
+    const s = String(v == null ? '' : v);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+
+  function initRecord() {
+    $('#dlObs').addEventListener('click', () => {
+      const rows = [['char_id', 'label', 'level', 'value', 'text']];
+      D.characters.forEach((ch) => {
+        if (state.obs[ch.id] === undefined) return;
+        rows.push([ch.id, ch.label, ch.level,
+          Array.isArray(state.obs[ch.id]) ? state.obs[ch.id].join('|') : state.obs[ch.id],
+          obsText(ch, state.obs[ch.id])]);
+      });
+      download('reticularia_observation.csv', rows.map((r) => r.map(csvEscape).join(',')).join('\n'));
+    });
+    $('#dlJson').addEventListener('click', () => {
+      download('reticularia_observation.json', $('#obsJson').value);
+    });
+    $('#dlMatrix').addEventListener('click', () => {
+      const rows = [['char_id', 'label', 'level', 'reliability', 'eliminates', 'taxon', 'value', 'inferred', 'source']];
+      D.characters.forEach((ch) => {
+        D.taxa.forEach((tx) => {
+          const cell = tx.chars ? tx.chars[ch.id] : undefined;
+          rows.push([ch.id, ch.label, ch.level, ch.reliability, ch.eliminates ? 'yes' : '',
+            tx.name, cell ? E.cellLabel(ch, cell) : '', cell && cell.inferred ? 'yes' : '',
+            cell ? (cell.src || '') : '']);
+        });
+      });
+      download('reticularia_matrix.csv', rows.map((r) => r.map(csvEscape).join(',')).join('\n'));
+    });
+    $('#copyJson').addEventListener('click', () => {
+      const ta = $('#obsJson');
+      ta.select();
+      try {
+        navigator.clipboard.writeText(ta.value);
+      } catch (e) {
+        document.execCommand('copy');
+      }
+    });
+  }
+
+
+  // ---------- sequence ----------
+  const seqState = { marker: 'nucSSU' };
+
+  function speciesLabel(sp) {
+    if (sp === 'sp.') return 'Reticularia sp.（未記載）';
+    return 'Reticularia ' + sp;
+  }
+
+  function initSeq() {
+    const seg = $('#seqMarker');
+    if (!seg) return;
+    seg.querySelectorAll('button').forEach((b) => {
+      b.setAttribute('aria-pressed', String(b.dataset.marker === seqState.marker));
+      b.addEventListener('click', () => {
+        seqState.marker = b.dataset.marker;
+        seg.querySelectorAll('button').forEach((x) => {
+          x.setAttribute('aria-pressed', String(x.dataset.marker === seqState.marker));
+        });
+        $('#seqResult').textContent = '';
+      });
+    });
+    $('#seqRun').addEventListener('click', runSeq);
+    $('#seqClear').addEventListener('click', () => {
+      $('#seqInput').value = '';
+      $('#seqResult').textContent = '';
+    });
+  }
+
+  function runSeq() {
+    const box = $('#seqResult');
+    box.textContent = '';
+    const refs = (D.seqRefs || {})[seqState.marker];
+    if (!refs) return;
+    const res = E.matchSequence(refs, $('#seqInput').value, { k: 12 });
+    if (res.error) {
+      box.appendChild(el('div', 'note warn', res.error));
+      return;
+    }
+
+    const best = res.best;
+    const disagreeWithMorph = (() => {
+      const morph = E.evaluate(D, state.obs, { mode: state.mode, maxLevel: state.maxLevel });
+      const cands = (morph.strong || []).map((s) => s.taxon.id);
+      if (!cands.length) return null;
+      return { cands, match: cands.indexOf(best.species) >= 0 };
+    })();
+
+    const verdict = el('div', 'verdict' + (best.score < 0.6 ? ' none' : ''));
+    verdict.appendChild(el('h2', null, res.verdict));
+    verdict.appendChild(el('p', null,
+      '最も近い参照: ' + speciesLabel(best.species) + (best.ribotype ? ' ' + best.ribotype : '') +
+      '（' + best.specimen + '）／ スコア ' + (best.score * 100).toFixed(1) + '％' +
+      '／ クエリ ' + res.queryLength + ' 塩基・' + res.kmers + ' 個の ' + res.k + '-mer'));
+    box.appendChild(verdict);
+
+    if (best.outgroup) {
+      box.appendChild(el('div', 'note warn',
+        '最も近い参照が対外群（' + best.genus + '）です。Reticularia ではない可能性があります。'));
+    }
+    if (res.ambiguous) {
+      box.appendChild(el('div', 'note warn',
+        '上位2件が同点に近く、種が割れています（' + speciesLabel(res.top[0].species) + ' と ' +
+        speciesLabel(res.top[1].species) + '）。参照の追加か、系統解析が必要です。'));
+    }
+
+    if (disagreeWithMorph) {
+      const n = el('div', 'note ' + (disagreeWithMorph.match ? 'info agree' : 'warn disagree'));
+      n.appendChild(el('b', null, disagreeWithMorph.match ? '形態の候補と一致' : '形態の候補と不一致'));
+      n.appendChild(document.createTextNode(
+        disagreeWithMorph.match
+          ? '形態から絞った候補（' + disagreeWithMorph.cands.map(speciesLabel).join('、') + '）に、配列の最近縁が含まれます。'
+          : '形態から絞った候補（' + disagreeWithMorph.cands.map(speciesLabel).join('、') +
+            '）に、配列の最近縁（' + speciesLabel(best.species) + '）が入っていません。隠蔽種・誤同定・参照の不足のいずれかを検討してください。'));
+      box.appendChild(n);
+    } else {
+      box.appendChild(el('div', 'note info',
+        '形態の観察が未入力なので、形態との突き合わせはしていません。'));
+    }
+
+    const table = document.createElement('table');
+    table.className = 'matrix';
+    const thead = document.createElement('thead');
+    const hr = document.createElement('tr');
+    ['#', '参照（種・リボタイプ・標本）', '種', 'リボタイプ', 'スコア'].forEach((h) => hr.appendChild(el('th', null, h)));
+    thead.appendChild(hr);
+    table.appendChild(thead);
+    const tb = document.createElement('tbody');
+    res.top.forEach((r, i) => {
+      const tr = document.createElement('tr');
+      tr.appendChild(el('td', null, String(i + 1)));
+      const idc = el('td');
+      idc.appendChild(el('i', null, r.id.replace(/_/g, ' ')));
+      if (r.outgroup) idc.appendChild(el('span', 'small', '（対外群）'));
+      tr.appendChild(idc);
+      tr.appendChild(el('td', null, r.species));
+      tr.appendChild(el('td', null, r.ribotype || '—'));
+      tr.appendChild(el('td', null, (r.score * 100).toFixed(1) + '％'));
+      tb.appendChild(tr);
+    });
+    table.appendChild(tb);
+    box.appendChild(table);
+
+    const st = (D.seqStats || {})[seqState.marker];
+    if (st) {
+      box.appendChild(el('p', 'seqmeta',
+        'この照合の検証（参照から自分を除いて再照合）: 種一致 ' + st.speciesOk + '/' + st.n +
+        '、300bp に切り出しても ' + st.tOk + '/' + st.tN +
+        '。リボタイプまで一致するのは ' + st.ribOk + '/' + st.ribN +
+        ' で、近縁リボタイプの区別には向きません。'));
+    }
+    box.appendChild(el('p', 'seqmeta',
+      'スコアは 12-mer の含有率で、相同率ではありません。判定は種レベルで読み、最終判断はアラインメント（MAFFT など）で確認してください。'));
+  }
+
+  // ---------- about / tests ----------
+  function renderAbout() {
+    const box = $('#conflicts');
+    D.conflicts.forEach((k) => {
+      const d = el('div', 'conflict');
+      d.appendChild(el('b', null, k.title));
+      d.appendChild(el('p', null, k.body));
+      box.appendChild(d);
+    });
+    $('#runTests').addEventListener('click', runTests);
+  }
+
+  function runTests() {
+    const box = $('#testResults');
+    box.textContent = '';
+    let pass = 0;
+    D.tests.forEach((t) => {
+      const res = E.evaluate(D, t.obs, { mode: 'standard', maxLevel: 3 });
+      const chk = E.checkExpectation(res, t.expect);
+      if (chk.pass) pass += 1;
+      const row = el('div', 'testrow');
+      row.appendChild(el('span', chk.pass ? 'pass' : 'fail', chk.pass ? 'PASS' : 'FAIL'));
+      row.appendChild(el('span', null, t.title));
+      const names = res.survivors.map((s) => s.taxon.name.replace('Reticularia ', 'R. ')).join(', ');
+      row.appendChild(el('span', 'small', '→ ' + (names || '該当なし')));
+      box.appendChild(row);
+      if (!chk.pass) {
+        const d = el('div', 'small', '　' + chk.failures.join(' / '));
+        d.style.color = '#8c2f2f';
+        box.appendChild(d);
+      }
+    });
+    const sum = el('div', 'testrow');
+    sum.appendChild(el('span', pass === D.tests.length ? 'pass' : 'fail',
+      pass + ' / ' + D.tests.length));
+    sum.appendChild(el('span', null, '件が期待どおり'));
+    box.appendChild(sum);
+  }
+
+  // ---------- boot ----------
+  showTab('key');
+  initHeader();
+  initRecord();
+  renderChars();
+  renderResult();
+  renderMatrix();
+  renderClaims();
+  renderGallery();
+  renderRecord();
+  initSeq();
+  renderAbout();
+  window.__RKEY__ = { state, evaluate: () => E.evaluate(D, state.obs, { mode: state.mode, maxLevel: state.maxLevel }) };
+})();
+
+</script>
+</body>
+</html>
